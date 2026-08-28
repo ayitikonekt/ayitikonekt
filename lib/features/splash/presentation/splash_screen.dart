@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../auth/providers/auth_provider.dart';
+import '../../home/presentation/main_navigation.dart';
 import 'country_selection_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -16,6 +19,9 @@ class _SplashScreenState extends State<SplashScreen>
   late final AnimationController _controller;
   late final Animation<double> _fade;
   late final Animation<double> _scale;
+  Timer? _minimumDisplayTimer;
+  bool _minimumDisplayElapsed = false;
+  bool _navigating = false;
 
   @override
   void initState() {
@@ -25,28 +31,49 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 900),
     );
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _scale = Tween(begin: .86, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+    _scale = Tween(
+      begin: .86,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
     _controller.forward();
 
-    Timer(const Duration(seconds: 3), () {
+    _minimumDisplayTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      setState(() => _minimumDisplayElapsed = true);
+    });
+  }
+
+  void _continueFromSplash(AuthProvider authProvider) {
+    if (_navigating || !_minimumDisplayElapsed || !authProvider.initialized) {
+      return;
+    }
+
+    _navigating = true;
+    final destination = authProvider.isLoggedIn
+        ? const MainNavigation()
+        : const CountrySelectionScreen();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const CountrySelectionScreen()),
+        MaterialPageRoute(builder: (_) => destination),
       );
     });
   }
 
   @override
   void dispose() {
+    _minimumDisplayTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    _continueFromSplash(authProvider);
+
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,

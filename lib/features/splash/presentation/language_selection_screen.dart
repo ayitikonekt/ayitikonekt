@@ -3,25 +3,20 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/localization/app_locale_provider.dart';
+import '../../../shared/widgets/app_back_button.dart';
 import 'welcome_screen.dart';
-
-
 
 class LanguageSelectionScreen extends StatefulWidget {
   final String country;
 
-  const LanguageSelectionScreen({
-    super.key,
-    required this.country,
-  });
+  const LanguageSelectionScreen({super.key, required this.country});
 
   @override
   State<LanguageSelectionScreen> createState() =>
       _LanguageSelectionScreenState();
 }
 
-class _LanguageSelectionScreenState
-    extends State<LanguageSelectionScreen> {
+class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
   String? _selectedLanguage;
 
   @override
@@ -47,74 +42,35 @@ class _LanguageSelectionScreenState
     switch (widget.country) {
       case 'Estados Unidos':
         return [
-          {
-            'name': 'Kreyòl Ayisyen',
-            'code': 'ht',
-          },
-          {
-            'name': 'English',
-            'code': 'en',
-          },
-          {
-            'name': 'Español',
-            'code': 'es',
-          },
+          {'name': 'Kreyòl Ayisyen', 'code': 'ht'},
+          {'name': 'English', 'code': 'en'},
+          {'name': 'Español', 'code': 'es'},
         ];
 
       case 'Canadá':
         return [
-          {
-            'name': 'Kreyòl Ayisyen',
-            'code': 'ht',
-          },
-          {
-            'name': 'English',
-            'code': 'en',
-          },
-          {
-            'name': 'Français',
-            'code': 'fr',
-          },
+          {'name': 'Kreyòl Ayisyen', 'code': 'ht'},
+          {'name': 'English', 'code': 'en'},
+          {'name': 'Français', 'code': 'fr'},
         ];
 
       case 'Haití':
         return [
-          {
-            'name': 'Kreyòl Ayisyen',
-            'code': 'ht',
-          },
-          {
-            'name': 'Français',
-            'code': 'fr',
-          },
+          {'name': 'Kreyòl Ayisyen', 'code': 'ht'},
+          {'name': 'Français', 'code': 'fr'},
         ];
 
       case 'Francia':
         return [
-          {
-            'name': 'Kreyòl Ayisyen',
-            'code': 'ht',
-          },
-          {
-            'name': 'Français',
-            'code': 'fr',
-          },
-          {
-            'name': 'English',
-            'code': 'en',
-          },
+          {'name': 'Kreyòl Ayisyen', 'code': 'ht'},
+          {'name': 'Français', 'code': 'fr'},
+          {'name': 'English', 'code': 'en'},
         ];
 
       case 'Brasil':
         return [
-          {
-            'name': 'Kreyòl Ayisyen',
-            'code': 'ht',
-          },
-          {
-            'name': 'Português',
-            'code': 'pt',
-          },
+          {'name': 'Kreyòl Ayisyen', 'code': 'ht'},
+          {'name': 'Português', 'code': 'pt'},
         ];
 
       case 'Chile':
@@ -122,14 +78,8 @@ class _LanguageSelectionScreenState
       case 'México':
       default:
         return [
-          {
-            'name': 'Kreyòl Ayisyen',
-            'code': 'ht',
-          },
-          {
-            'name': 'Español',
-            'code': 'es',
-          },
+          {'name': 'Kreyòl Ayisyen', 'code': 'ht'},
+          {'name': 'Español', 'code': 'es'},
         ];
     }
   }
@@ -155,7 +105,12 @@ class _LanguageSelectionScreenState
                   child: IntrinsicHeight(
                     child: Column(
                       children: [
-                        SizedBox(height: compact ? 28 : 72),
+                        const SizedBox(height: 8),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: AppBackButton(label: 'Volver'),
+                        ),
+                        SizedBox(height: compact ? 8 : 28),
                         const Text(
                           'Chwazi lang ou /\nElige tu idioma',
                           textAlign: TextAlign.center,
@@ -193,13 +148,14 @@ class _LanguageSelectionScreenState
                               label: name,
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(12),
-                                onTap: () => setState(
-                                  () => _selectedLanguage = name,
-                                ),
+                                onTap: () =>
+                                    setState(() => _selectedLanguage = name),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 180),
                                   height: 62,
-                                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(12),
@@ -254,44 +210,47 @@ class _LanguageSelectionScreenState
                           width: double.infinity,
                           height: 58,
                           child: ElevatedButton(
-                 onPressed: _selectedLanguage == null
-    ? null
-    : () {
-        final selected = _languages.firstWhere(
-          (item) => item['name'] == _selectedLanguage,
-        );
-        context.read<AppLocaleProvider>().selectLanguage(
-          code: selected['code']!,
-          name: selected['name']!,
-        );
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => WelcomeScreen(
-              country: widget.country,
-              language: _selectedLanguage!,
-            ),
-          ),
-        );
-      },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF073EC5),
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: const Color(0xFFD1D5DB),
-                    elevation: 4,
-                    shadowColor: const Color(0x55073EC5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Continuar',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+                            onPressed: _selectedLanguage == null
+                                ? null
+                                : () {
+                                    final selected = _languages.firstWhere(
+                                      (item) =>
+                                          item['name'] == _selectedLanguage,
+                                    );
+                                    context
+                                        .read<AppLocaleProvider>()
+                                        .selectLanguage(
+                                          code: selected['code']!,
+                                          name: selected['name']!,
+                                        );
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => WelcomeScreen(
+                                          country: widget.country,
+                                          language: _selectedLanguage!,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF073EC5),
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: const Color(0xFFD1D5DB),
+                              elevation: 4,
+                              shadowColor: const Color(0x55073EC5),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Continuar',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
                         SizedBox(height: compact ? 18 : 30),
                       ],
@@ -316,10 +275,7 @@ class _FlagIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
-      child: CustomPaint(
-        size: const Size(34, 25),
-        painter: _FlagPainter(code),
-      ),
+      child: CustomPaint(size: const Size(34, 25), painter: _FlagPainter(code)),
     );
   }
 }
@@ -336,21 +292,54 @@ class _FlagPainter extends CustomPainter {
 
     switch (code) {
       case 'ht':
-        canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height / 2), paint..color = const Color(0xFF00209F));
-        canvas.drawRect(Rect.fromLTWH(0, size.height / 2, size.width, size.height / 2), paint..color = const Color(0xFFD21034));
-        canvas.drawRect(Rect.fromCenter(center: Offset(size.width / 2, size.height / 2), width: 15, height: 11), paint..color = Colors.white);
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, size.width, size.height / 2),
+          paint..color = const Color(0xFF00209F),
+        );
+        canvas.drawRect(
+          Rect.fromLTWH(0, size.height / 2, size.width, size.height / 2),
+          paint..color = const Color(0xFFD21034),
+        );
+        canvas.drawRect(
+          Rect.fromCenter(
+            center: Offset(size.width / 2, size.height / 2),
+            width: 15,
+            height: 11,
+          ),
+          paint..color = Colors.white,
+        );
         _drawHaitiCoatOfArms(canvas, size, paint);
         break;
       case 'es':
         canvas.drawRect(rect, paint..color = Colors.white);
-        canvas.drawRect(Rect.fromLTWH(0, size.height / 2, size.width, size.height / 2), paint..color = const Color(0xFFD52B1E));
-        canvas.drawRect(Rect.fromLTWH(0, 0, size.width * .36, size.height / 2), paint..color = const Color(0xFF0039A6));
-        _drawStar(canvas, Offset(size.width * .18, size.height * .25), 3.7, paint..color = Colors.white);
+        canvas.drawRect(
+          Rect.fromLTWH(0, size.height / 2, size.width, size.height / 2),
+          paint..color = const Color(0xFFD52B1E),
+        );
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, size.width * .36, size.height / 2),
+          paint..color = const Color(0xFF0039A6),
+        );
+        _drawStar(
+          canvas,
+          Offset(size.width * .18, size.height * .25),
+          3.7,
+          paint..color = Colors.white,
+        );
         break;
       case 'fr':
-        canvas.drawRect(Rect.fromLTWH(0, 0, size.width / 3, size.height), paint..color = const Color(0xFF0055A4));
-        canvas.drawRect(Rect.fromLTWH(size.width / 3, 0, size.width / 3, size.height), paint..color = Colors.white);
-        canvas.drawRect(Rect.fromLTWH(size.width * 2 / 3, 0, size.width / 3, size.height), paint..color = const Color(0xFFEF4135));
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, size.width / 3, size.height),
+          paint..color = const Color(0xFF0055A4),
+        );
+        canvas.drawRect(
+          Rect.fromLTWH(size.width / 3, 0, size.width / 3, size.height),
+          paint..color = Colors.white,
+        );
+        canvas.drawRect(
+          Rect.fromLTWH(size.width * 2 / 3, 0, size.width / 3, size.height),
+          paint..color = const Color(0xFFEF4135),
+        );
         break;
       case 'pt':
         canvas.drawRect(rect, paint..color = const Color(0xFF009C3B));
@@ -361,14 +350,24 @@ class _FlagPainter extends CustomPainter {
           ..lineTo(4, size.height / 2)
           ..close();
         canvas.drawPath(path, paint..color = const Color(0xFFFFDF00));
-        canvas.drawCircle(Offset(size.width / 2, size.height / 2), 4.5, paint..color = const Color(0xFF002776));
+        canvas.drawCircle(
+          Offset(size.width / 2, size.height / 2),
+          4.5,
+          paint..color = const Color(0xFF002776),
+        );
         break;
       default:
         canvas.drawRect(rect, paint..color = Colors.white);
         for (var i = 0; i < 7; i++) {
-          canvas.drawRect(Rect.fromLTWH(0, i * size.height / 7, size.width, size.height / 14), paint..color = const Color(0xFFB22234));
+          canvas.drawRect(
+            Rect.fromLTWH(0, i * size.height / 7, size.width, size.height / 14),
+            paint..color = const Color(0xFFB22234),
+          );
         }
-        canvas.drawRect(Rect.fromLTWH(0, 0, size.width * .43, size.height * .54), paint..color = const Color(0xFF3C3B6E));
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, size.width * .43, size.height * .54),
+          paint..color = const Color(0xFF3C3B6E),
+        );
     }
   }
 
@@ -377,8 +376,13 @@ class _FlagPainter extends CustomPainter {
     for (var i = 0; i < 10; i++) {
       final angle = -1.5708 + i * 0.62832;
       final r = i.isEven ? radius : radius * .42;
-      final point = Offset(center.dx + r * math.cos(angle), center.dy + r * math.sin(angle));
-      i == 0 ? path.moveTo(point.dx, point.dy) : path.lineTo(point.dx, point.dy);
+      final point = Offset(
+        center.dx + r * math.cos(angle),
+        center.dy + r * math.sin(angle),
+      );
+      i == 0
+          ? path.moveTo(point.dx, point.dy)
+          : path.lineTo(point.dx, point.dy);
     }
     path.close();
     canvas.drawPath(path, paint);
@@ -389,15 +393,27 @@ class _FlagPainter extends CustomPainter {
     final centerY = size.height / 2;
 
     canvas.drawRect(
-      Rect.fromCenter(center: Offset(centerX, centerY + 3.4), width: 8.5, height: 1.5),
+      Rect.fromCenter(
+        center: Offset(centerX, centerY + 3.4),
+        width: 8.5,
+        height: 1.5,
+      ),
       paint..color = const Color(0xFF2F6B3C),
     );
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(centerX, centerY + 2.5), width: 4.5, height: 1.8),
+      Rect.fromCenter(
+        center: Offset(centerX, centerY + 2.5),
+        width: 4.5,
+        height: 1.8,
+      ),
       paint..color = const Color(0xFFC89B3C),
     );
     canvas.drawRect(
-      Rect.fromCenter(center: Offset(centerX, centerY - .3), width: 1.15, height: 6.2),
+      Rect.fromCenter(
+        center: Offset(centerX, centerY - .3),
+        width: 1.15,
+        height: 6.2,
+      ),
       paint..color = const Color(0xFF8B5A2B),
     );
 
@@ -421,12 +437,29 @@ class _FlagPainter extends CustomPainter {
     paint
       ..strokeWidth = 1
       ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(centerX - 1.2, centerY + 1.5), Offset(centerX - 5.5, centerY + 3), paint..color = const Color(0xFFB98224));
-    canvas.drawLine(Offset(centerX + 1.2, centerY + 1.5), Offset(centerX + 5.5, centerY + 3), paint..color = const Color(0xFFB98224));
-    canvas.drawLine(Offset(centerX - 1.8, centerY + 1.2), Offset(centerX - 5, centerY - 2.2), paint..color = const Color(0xFF003DA5));
-    canvas.drawLine(Offset(centerX + 1.8, centerY + 1.2), Offset(centerX + 5, centerY - 2.2), paint..color = const Color(0xFFD21034));
+    canvas.drawLine(
+      Offset(centerX - 1.2, centerY + 1.5),
+      Offset(centerX - 5.5, centerY + 3),
+      paint..color = const Color(0xFFB98224),
+    );
+    canvas.drawLine(
+      Offset(centerX + 1.2, centerY + 1.5),
+      Offset(centerX + 5.5, centerY + 3),
+      paint..color = const Color(0xFFB98224),
+    );
+    canvas.drawLine(
+      Offset(centerX - 1.8, centerY + 1.2),
+      Offset(centerX - 5, centerY - 2.2),
+      paint..color = const Color(0xFF003DA5),
+    );
+    canvas.drawLine(
+      Offset(centerX + 1.8, centerY + 1.2),
+      Offset(centerX + 5, centerY - 2.2),
+      paint..color = const Color(0xFFD21034),
+    );
   }
 
   @override
-  bool shouldRepaint(covariant _FlagPainter oldDelegate) => oldDelegate.code != code;
+  bool shouldRepaint(covariant _FlagPainter oldDelegate) =>
+      oldDelegate.code != code;
 }

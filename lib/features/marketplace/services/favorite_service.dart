@@ -1,14 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class FavoriteService {
+abstract interface class FavoriteRepository {
+  Future<int> toggleFavorite({
+    required String uid,
+    required String productId,
+    required bool add,
+  });
+
+  Future<Set<String>> getFavoriteIds(String uid);
+}
+
+class FavoriteService implements FavoriteRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   CollectionReference<Map<String, dynamic>> _favoritesCollection(String uid) {
-    return _firestore
-        .collection('users')
-        .doc(uid)
-        .collection('favorites');
+    return _firestore.collection('users').doc(uid).collection('favorites');
   }
 
+  @override
   Future<int> toggleFavorite({
     required String uid,
     required String productId,
@@ -34,7 +42,6 @@ class FavoriteService {
           'productId': productId,
           'createdAt': FieldValue.serverTimestamp(),
         });
-
       } else {
         transaction.delete(favorite);
       }
@@ -44,11 +51,10 @@ class FavoriteService {
     });
   }
 
+  @override
   Future<Set<String>> getFavoriteIds(String uid) async {
     final snapshot = await _favoritesCollection(uid).get();
 
-    return snapshot.docs
-        .map((doc) => doc.id)
-        .toSet();
+    return snapshot.docs.map((doc) => doc.id).toSet();
   }
 }

@@ -6,6 +6,8 @@ class AnimatedFavoriteButton extends StatefulWidget {
   final double iconSize;
   final EdgeInsetsGeometry padding;
   final Color backgroundColor;
+  final Color selectedColor;
+  final Color unselectedColor;
 
   const AnimatedFavoriteButton({
     super.key,
@@ -14,11 +16,12 @@ class AnimatedFavoriteButton extends StatefulWidget {
     this.iconSize = 22,
     this.padding = const EdgeInsets.all(8),
     this.backgroundColor = Colors.white,
+    this.selectedColor = const Color(0xFFE31B23),
+    this.unselectedColor = const Color(0xFF616161),
   });
 
   @override
-  State<AnimatedFavoriteButton> createState() =>
-      _AnimatedFavoriteButtonState();
+  State<AnimatedFavoriteButton> createState() => _AnimatedFavoriteButtonState();
 }
 
 class _AnimatedFavoriteButtonState extends State<AnimatedFavoriteButton> {
@@ -78,7 +81,7 @@ class _AnimatedFavoriteButtonState extends State<AnimatedFavoriteButton> {
             child: Icon(
               _selected ? Icons.favorite : Icons.favorite_border,
               key: ValueKey(_selected),
-              color: _selected ? const Color(0xFFE31B23) : Colors.grey.shade700,
+              color: _selected ? widget.selectedColor : widget.unselectedColor,
               size: widget.iconSize,
             ),
           ),

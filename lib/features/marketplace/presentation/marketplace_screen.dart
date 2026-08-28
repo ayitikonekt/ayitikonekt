@@ -100,7 +100,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       (title: 'Empleos', icon: Icons.work, color: Colors.green),
       (title: 'Servicios', icon: Icons.handyman, color: Colors.orange),
       (title: 'Ropa', icon: Icons.checkroom, color: Colors.red),
-      (title: 'Mascotas', icon: Icons.pets, color: Colors.orange),
       (title: 'Otros', icon: Icons.more_horiz, color: Colors.blueGrey),
     ];
 
@@ -200,7 +199,19 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                               title: item.title,
                               icon: item.icon,
                               color: item.color,
-                              onTap: () => provider.updateCategory(item.title),
+                              onTap: item.title == 'Todas'
+                                  ? provider.clearFilters
+                                  : item.title == 'Otros'
+                                  ? () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const CategoriesScreen(),
+                                        ),
+                                      );
+                                    }
+                                  : () => provider.updateCategory(item.title),
                             );
                           },
                         );

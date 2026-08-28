@@ -256,7 +256,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       (title: 'Moda', icon: Icons.checkroom, color: Colors.pink),
       (title: 'Servicios', icon: Icons.handyman, color: Colors.orange),
-      (title: 'Muebles', icon: Icons.chair, color: Colors.brown),
       (title: 'Mascotas', icon: Icons.pets, color: Colors.orange),
       (title: 'Otros', icon: Icons.more_horiz, color: Colors.blueGrey),
     ];
@@ -265,17 +264,9 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: const Color(0xFFF5F7FA),
 
       appBar: AppBar(
+        toolbarHeight: 58,
         backgroundColor: const Color(0xFF0646D8),
         surfaceTintColor: const Color(0xFF0646D8),
-        flexibleSpace: const DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [Color(0xFF0646D8), Color(0xFF0D47A1)],
-            ),
-          ),
-        ),
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
@@ -349,6 +340,22 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.person_outline, color: Colors.white),
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(118),
+          child: FutureBuilder<UserModel?>(
+            future: _userFuture,
+            builder: (context, snapshot) => HomeBanner(
+              country: snapshot.data?.country.isNotEmpty == true
+                  ? snapshot.data!.country
+                  : 'Chile',
+              onSearchChanged: (value) {
+                setState(() {
+                  _homeSearchQuery = value.trim().toLowerCase();
+                });
+              },
+            ),
+          ),
+        ),
       ),
 
       body: SafeArea(
@@ -370,22 +377,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
 
               children: [
-                // Banner
-                FutureBuilder<UserModel?>(
-                  future: _userFuture,
-                  builder: (context, snapshot) => HomeBanner(
-                    country: snapshot.data?.country.isNotEmpty == true
-                        ? snapshot.data!.country
-                        : 'Chile',
-                    onSearchChanged: (value) {
-                      setState(() {
-                        _homeSearchQuery = value.trim().toLowerCase();
-                      });
-                    },
-                  ),
-                ),
-
-                const SizedBox(height: 24),
+                const SizedBox(height: 18),
 
                 // Estadísticas
                 Consumer<MarketplaceProvider>(
@@ -508,6 +500,16 @@ class _HomeScreenState extends State<HomeScreen> {
                             title: translatedTitle,
                             color: item.color,
                             onTap: () {
+                              if (item.title == 'Otros') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const CategoriesScreen(),
+                                  ),
+                                );
+                                return;
+                              }
+
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -544,7 +546,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 10),
 
                 SizedBox(
-                  height: 350,
+                  height: 370,
                   child: Consumer<MarketplaceProvider>(
                     builder: (context, marketplaceProvider, _) {
                       final products = marketplaceProvider.allProducts.where((

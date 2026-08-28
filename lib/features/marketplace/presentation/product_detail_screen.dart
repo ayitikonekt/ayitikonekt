@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/widgets/app_back_button.dart';
+import '../../../shared/widgets/animated_favorite_button.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -380,21 +381,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   : const Icon(Icons.delete_outline, color: Colors.red),
             ),
 
-          IconButton(
-            onPressed: () {
-              marketplaceProvider.toggleFavorite(product);
-            },
-            icon: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              transitionBuilder: (child, animation) {
-                return ScaleTransition(scale: animation, child: child);
-              },
-              child: Icon(
-                favorite ? Icons.favorite : Icons.favorite_border,
-                key: ValueKey<bool>(favorite),
-                color: Colors.white,
-                size: 28,
-              ),
+          Tooltip(
+            message: favorite ? 'Quitar de favoritos' : 'Agregar a favoritos',
+            child: AnimatedFavoriteButton(
+              isFavorite: favorite,
+              onPressed: () => marketplaceProvider.toggleFavorite(product),
+              iconSize: 28,
+              padding: const EdgeInsets.all(10),
+              backgroundColor: Colors.transparent,
+              selectedColor: const Color(0xFFE31B23),
+              unselectedColor: Colors.white,
             ),
           ),
         ],

@@ -7,11 +7,7 @@ class HomeBanner extends StatelessWidget {
   final String country;
   final ValueChanged<String>? onSearchChanged;
 
-  const HomeBanner({
-    super.key,
-    required this.country,
-    this.onSearchChanged,
-  });
+  const HomeBanner({super.key, required this.country, this.onSearchChanged});
 
   String _localizedCountry(BuildContext context) {
     final language = Localizations.localeOf(context).languageCode;
@@ -66,38 +62,33 @@ class HomeBanner extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF0646D8),
-            Color(0xFF0D47A1),
-            Color(0xFFF20D1B),
-          ],
-          stops: [0, .68, 1],
-        ),
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 16, offset: Offset(0, 8)),
-        ],
+      color: const Color(0xFF0646D8),
+      padding: EdgeInsets.symmetric(
+        horizontal: MediaQuery.sizeOf(context).width < 600 ? 16 : 24,
+        vertical: 7,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppSearchBar(onChanged: onSearchChanged),
-          const SizedBox(height: 28),
-          Text(
-            context.trWith('communityIn', {'country': location}),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              height: 1.25,
-              fontWeight: FontWeight.bold,
-            ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                context.trWith('communityIn', {'country': location}),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  height: 1.2,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 9),
+              AppSearchBar(onChanged: onSearchChanged),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

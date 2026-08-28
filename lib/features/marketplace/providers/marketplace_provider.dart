@@ -5,8 +5,14 @@ import '../services/favorite_service.dart';
 import '../services/product_service.dart';
 
 class MarketplaceProvider extends ChangeNotifier {
-  final ProductService _service = ProductService();
-  final FavoriteService _favoriteService = FavoriteService();
+  final ProductRepository _service;
+  final FavoriteRepository _favoriteService;
+
+  MarketplaceProvider({
+    ProductRepository? productService,
+    FavoriteRepository? favoriteService,
+  }) : _service = productService ?? ProductService(),
+       _favoriteService = favoriteService ?? FavoriteService();
 
   List<ProductModel> _products = [];
 
@@ -48,8 +54,7 @@ class MarketplaceProvider extends ChangeNotifier {
   double? get minPrice => _minPrice;
   double? get maxPrice => _maxPrice;
 
-  bool isFavorite(ProductModel product) =>
-      _favoriteIds.contains(product.id);
+  bool isFavorite(ProductModel product) => _favoriteIds.contains(product.id);
 
   Future<void> loadProducts() async {
     if (_loading) return;
@@ -105,8 +110,9 @@ class MarketplaceProvider extends ChangeNotifier {
       await _service.incrementViews(product.id);
     } catch (_) {
       // Revertimos el cambio visual si Firebase rechaza la operación.
-      final currentIndex =
-          _products.indexWhere((item) => item.id == product.id);
+      final currentIndex = _products.indexWhere(
+        (item) => item.id == product.id,
+      );
       if (currentIndex >= 0 && _products[currentIndex].views > 0) {
         _products[currentIndex] = _products[currentIndex].copyWith(
           views: _products[currentIndex].views - 1,
@@ -228,7 +234,8 @@ class MarketplaceProvider extends ChangeNotifier {
       final query = _search.trim().toLowerCase();
       list = list
           .where(
-            (product) => product.title.toLowerCase().contains(query) ||
+            (product) =>
+                product.title.toLowerCase().contains(query) ||
                 product.description.toLowerCase().contains(query) ||
                 product.category.toLowerCase().contains(query) ||
                 product.city.toLowerCase().contains(query) ||
@@ -238,11 +245,7 @@ class MarketplaceProvider extends ChangeNotifier {
     }
 
     if (_category != "Todas") {
-      list = list
-          .where(
-            (product) => product.category == _category,
-          )
-          .toList();
+      list = list.where((product) => product.category == _category).toList();
     }
 
     if (_type == "Productos") {
@@ -272,15 +275,11 @@ class MarketplaceProvider extends ChangeNotifier {
         break;
 
       case "newest":
-        list.sort(
-          (a, b) => b.createdAt.compareTo(a.createdAt),
-        );
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
 
       case "oldest":
-        list.sort(
-          (a, b) => a.createdAt.compareTo(b.createdAt),
-        );
+        list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
         break;
     }
 

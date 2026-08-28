@@ -30,11 +30,12 @@ class _EditProductScreenState extends State<EditProductScreen> {
   late String _category;
   late String _condition;
   bool _saving = false;
+  bool _pickingImages = false;
 
   final _picker = ImagePicker();
   final StorageService _storageService = StorageService();
 
-  List<XFile> _selectedImages = [];
+  final List<XFile> _selectedImages = [];
   List<String> _existingImages = [];
 
   static const _categories = [
@@ -105,16 +106,40 @@ class _EditProductScreenState extends State<EditProductScreen> {
   }
 
   Future<void> _pickImages() async {
-    final images = await _picker.pickMultiImage(imageQuality: 80);
+    if (_pickingImages) return;
 
-    if (images.isEmpty || !mounted) return;
+    final availableSlots = 10 - _existingImages.length - _selectedImages.length;
+    if (availableSlots <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Puedes agregar un máximo de 10 fotos.')),
+      );
+      return;
+    }
 
-    setState(() {
-      _selectedImages = images
-          .take((10 - _existingImages.length).clamp(0, 10))
-          .map((image) => image)
-          .toList();
-    });
+    setState(() => _pickingImages = true);
+
+    try {
+      final images = await _picker.pickMultiImage(
+        imageQuality: 80,
+        limit: availableSlots,
+        requestFullMetadata: false,
+      );
+
+      if (images.isEmpty || !mounted) return;
+
+      setState(() {
+        _selectedImages.addAll(images.take(availableSlots));
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudieron seleccionar las imágenes: $error'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _pickingImages = false);
+    }
   }
 
   Future<void> _saveChanges() async {
@@ -321,9 +346,17 @@ class _EditProductScreenState extends State<EditProductScreen> {
             backgroundColor: Colors.white,
             foregroundColor: const Color(0xFF0646D8),
           ),
-          onPressed: _saving ? null : _pickImages,
-          icon: const Icon(Icons.add_photo_alternate_outlined),
-          label: const Text('Seleccionar imágenes'),
+          onPressed: _saving || _pickingImages ? null : _pickImages,
+          icon: _pickingImages
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.add_photo_alternate_outlined),
+          label: Text(
+            _pickingImages ? 'Abriendo selector...' : 'Seleccionar imágenes',
+          ),
         ),
         const SizedBox(height: 6),
         Text(

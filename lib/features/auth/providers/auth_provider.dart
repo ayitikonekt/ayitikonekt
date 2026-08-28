@@ -7,14 +7,18 @@ class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
 
   User? _user;
+  bool _initialized = false;
 
   User? get user => _user;
 
   bool get isLoggedIn => _user != null;
 
+  bool get initialized => _initialized;
+
   AuthProvider() {
     _authService.authStateChanges.listen((user) {
       _user = user;
+      _initialized = true;
       notifyListeners();
     });
   }

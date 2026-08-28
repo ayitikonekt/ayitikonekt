@@ -2,10 +2,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/product_model.dart';
 
-class ProductService {
+abstract interface class ProductRepository {
+  Future<void> createProduct(ProductModel product);
+  Future<List<ProductModel>> getProducts();
+  Stream<List<ProductModel>> getProductsStream();
+  Future<void> updateProduct(ProductModel product);
+  Future<void> incrementViews(String productId);
+  Future<void> deleteProduct(String id);
+}
+
+class ProductService implements ProductRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// Crear producto
+  @override
   Future<void> createProduct(ProductModel product) async {
     await _firestore
         .collection('products')
@@ -14,6 +24,7 @@ class ProductService {
   }
 
   /// Obtener productos (consulta única)
+  @override
   Future<List<ProductModel>> getProducts() async {
     final snapshot = await _firestore
         .collection('products')
@@ -26,6 +37,7 @@ class ProductService {
   }
 
   /// Obtener productos en tiempo real
+  @override
   Stream<List<ProductModel>> getProductsStream() {
     return _firestore
         .collection('products')
@@ -39,6 +51,7 @@ class ProductService {
   }
 
   /// Actualizar producto
+  @override
   Future<void> updateProduct(ProductModel product) async {
     await _firestore
         .collection('products')
@@ -47,6 +60,7 @@ class ProductService {
   }
 
   /// Incrementa de forma atómica para no perder vistas simultáneas.
+  @override
   Future<void> incrementViews(String productId) async {
     await _firestore.collection('products').doc(productId).update({
       'views': FieldValue.increment(1),
@@ -54,10 +68,8 @@ class ProductService {
   }
 
   /// Eliminar producto
+  @override
   Future<void> deleteProduct(String id) async {
-    await _firestore
-        .collection('products')
-        .doc(id)
-        .delete();
+    await _firestore.collection('products').doc(id).delete();
   }
 }

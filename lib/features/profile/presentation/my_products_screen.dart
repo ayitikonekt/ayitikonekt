@@ -26,6 +26,20 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
     });
   }
 
+  void _toggleSelectAll(List<ProductModel> products) {
+    final productIds = products.map((product) => product.id).toSet();
+    final allSelected =
+        productIds.isNotEmpty && _selectedIds.containsAll(productIds);
+
+    setState(() {
+      if (allSelected) {
+        _selectedIds.removeAll(productIds);
+      } else {
+        _selectedIds.addAll(productIds);
+      }
+    });
+  }
+
   Future<void> _openProduct(ProductModel product) async {
     final changed = await Navigator.push<bool>(
       context,
@@ -118,7 +132,7 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
                 onPressed: _deleting
                     ? null
                     : () => setState(_selectedIds.clear),
-                icon: const Icon(Icons.close),
+                icon: const Icon(Icons.close, color: Colors.white),
               )
             : const AppBackButton(
                 showWhenCannotPop: false,
@@ -132,6 +146,24 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
               : 'Mis publicaciones',
         ),
         actions: [
+          if (myProducts.isNotEmpty)
+            IconButton(
+              tooltip:
+                  _selectedIds.containsAll(
+                    myProducts.map((product) => product.id),
+                  )
+                  ? 'Deseleccionar todas'
+                  : 'Seleccionar todas',
+              onPressed: _deleting ? null : () => _toggleSelectAll(myProducts),
+              icon: Icon(
+                _selectedIds.containsAll(
+                      myProducts.map((product) => product.id),
+                    )
+                    ? Icons.deselect
+                    : Icons.select_all,
+                color: Colors.white,
+              ),
+            ),
           if (_selectionMode)
             IconButton(
               tooltip: 'Eliminar seleccionadas',
@@ -140,9 +172,12 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
                   ? const SizedBox(
                       width: 22,
                       height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.red,
+                      ),
                     )
-                  : const Icon(Icons.delete_outline, color: Colors.white),
+                  : const Icon(Icons.delete_outline, color: Colors.red),
             ),
         ],
       ),
