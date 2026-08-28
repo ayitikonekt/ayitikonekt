@@ -11,7 +11,9 @@ import '../../marketplace/services/storage_service.dart';
 import '../../../shared/widgets/xfile_image.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({super.key});
+  final bool openPhotoPicker;
+
+  const EditProfileScreen({super.key, this.openPhotoPicker = false});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -51,6 +53,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
     _loadProfile();
+    if (widget.openPhotoPicker) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _pickImageFromGallery();
+      });
+    }
   }
 
   Future<void> _loadProfile() async {
@@ -109,18 +116,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _pickImageFromGallery() async {
-    final XFile? image = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
 
-    if (image == null) {
-      return;
+      if (image == null || !mounted) return;
+
+      setState(() {
+        _selectedImage = image;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo seleccionar la foto: $error')),
+      );
     }
-
-    setState(() {
-      _selectedImage = image;
-    });
   }
 
   Future<void> _saveProfile() async {
@@ -214,9 +226,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     clipBehavior: Clip.none,
                     alignment: Alignment.bottomCenter,
                     children: [
-                      Container(
-                        height: constraints.maxWidth < 600 ? 145 : 170,
-                        decoration: const BoxDecoration(
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 44),
+                        child: Container(
+                          height: constraints.maxWidth < 600 ? 145 : 170,
+                          decoration: const BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
@@ -231,9 +245,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             bottom: Radius.circular(22),
                           ),
                         ),
-                        child: SafeArea(
-                          bottom: false,
-                          child: Row(
+                          child: SafeArea(
+                            bottom: false,
+                            child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const SizedBox(width: 4),
@@ -263,12 +277,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ),
                               const SizedBox(width: 4),
                             ],
+                            ),
                           ),
                         ),
                       ),
-                      Transform.translate(
-                        offset: const Offset(0, 44),
-                        child: Stack(
+                      Stack(
                           children: [
                             Container(
                               padding: const EdgeInsets.all(4),
@@ -314,11 +327,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ),
                             ),
                           ],
-                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 58),
+                  const SizedBox(height: 14),
                   Padding(
                     padding: EdgeInsets.fromLTRB(
                       constraints.maxWidth < 600 ? 14 : 24,

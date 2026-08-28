@@ -5,6 +5,7 @@ import '../../../core/localization/app_locale_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../auth/data/user_model.dart';
 import '../../auth/services/user_service.dart';
+import '../../auth/presentation/edit_profile_screen.dart';
 import '../../marketplace/providers/marketplace_provider.dart';
 import '../../splash/presentation/country_selection_screen.dart';
 import '../../notifications/presentation/notifications_screen.dart';
@@ -99,12 +100,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             Positioned(
-              top: 16,
-              left: 16,
-              child: IconButton(
-                tooltip: context.tr('close'),
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                icon: const Icon(Icons.close, color: Colors.white),
+              top: MediaQuery.paddingOf(dialogContext).top + 16,
+              right: 16,
+              child: Material(
+                color: Colors.black54,
+                shape: const CircleBorder(
+                  side: BorderSide(color: Colors.white70),
+                ),
+                child: IconButton(
+                  tooltip: context.tr('close'),
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: Colors.white,
+                    size: 27,
+                  ),
+                ),
               ),
             ),
             if (name.isNotEmpty)
@@ -126,6 +137,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openEditProfile() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const EditProfileScreen(openPhotoPicker: true),
+      ),
+    );
+    if (mounted) await _reloadProfile();
   }
 
   @override
@@ -182,9 +203,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   clipBehavior: Clip.none,
                   alignment: Alignment.bottomCenter,
                   children: [
-                    Container(
-                      height: constraints.maxWidth < 600 ? 145 : 170,
-                      decoration: const BoxDecoration(
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 42),
+                      child: Container(
+                        height: constraints.maxWidth < 600 ? 145 : 170,
+                        decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
@@ -199,9 +222,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           bottom: Radius.circular(22),
                         ),
                       ),
-                      child: SafeArea(
-                        bottom: false,
-                        child: Padding(
+                        child: SafeArea(
+                          bottom: false,
+                          child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 10),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,46 +254,78 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ],
                           ),
-                        ),
-                      ),
-                    ),
-                    Transform.translate(
-                      offset: const Offset(0, 42),
-                      child: Semantics(
-                        button: user.photo.isNotEmpty,
-                        label: context.tr('profilePhoto'),
-                        child: GestureDetector(
-                          onTap: user.photo.isEmpty
-                              ? null
-                              : () =>
-                                    _openProfilePhoto(user.photo, displayName),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: CircleAvatar(
-                              radius: constraints.maxWidth < 600 ? 42 : 50,
-                              backgroundColor: const Color(0xFFE4E7EC),
-                              backgroundImage: user.photo.isNotEmpty
-                                  ? NetworkImage(user.photo)
-                                  : null,
-                              child: user.photo.isEmpty
-                                  ? const Icon(
-                                      Icons.person,
-                                      size: 46,
-                                      color: Color(0xFF667085),
-                                    )
-                                  : null,
-                            ),
                           ),
                         ),
                       ),
                     ),
+                    Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Semantics(
+                            button: true,
+                            label: context.tr('profilePhoto'),
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: user.photo.isEmpty
+                                  ? _openEditProfile
+                                  : () => _openProfilePhoto(
+                                      user.photo,
+                                      displayName,
+                                    ),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: CircleAvatar(
+                                  radius: constraints.maxWidth < 600 ? 42 : 50,
+                                  backgroundColor: const Color(0xFFE4E7EC),
+                                  backgroundImage: user.photo.isNotEmpty
+                                      ? NetworkImage(user.photo)
+                                      : null,
+                                  child: user.photo.isEmpty
+                                      ? const Icon(
+                                          Icons.person,
+                                          size: 46,
+                                          color: Color(0xFF667085),
+                                        )
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Tooltip(
+                              message: context.tr('editProfile'),
+                              child: Material(
+                                color: const Color(0xFFF20D1B),
+                                shape: const CircleBorder(
+                                  side: BorderSide(color: Colors.white, width: 3),
+                                ),
+                                elevation: 3,
+                                child: SizedBox.square(
+                                  dimension: 40,
+                                  child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    onPressed: _openEditProfile,
+                                    icon: const Icon(
+                                      Icons.edit_rounded,
+                                      size: 18,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                    ),
                   ],
                 ),
-                const SizedBox(height: 50),
+                const SizedBox(height: 8),
                 Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: constraints.maxWidth < 600 ? 14 : 24,

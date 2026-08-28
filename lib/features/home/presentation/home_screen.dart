@@ -263,12 +263,36 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
 
-      appBar: AppBar(
-        toolbarHeight: 58,
-        backgroundColor: const Color(0xFF0646D8),
-        surfaceTintColor: const Color(0xFF0646D8),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(176),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(22),
+          ),
+          child: AppBar(
+            toolbarHeight: 58,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
+        clipBehavior: Clip.antiAlias,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(22)),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                Color(0xFF0646D8),
+                Color(0xFF0D47A1),
+                Color(0xFFF20D1B),
+              ],
+              stops: [0, .62, 1],
+            ),
+          ),
+        ),
         centerTitle: false,
         title: FutureBuilder<UserModel?>(
           future: _userFuture,
@@ -353,6 +377,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   _homeSearchQuery = value.trim().toLowerCase();
                 });
               },
+            ),
+          ),
             ),
           ),
         ),

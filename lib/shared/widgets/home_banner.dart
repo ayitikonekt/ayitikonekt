@@ -62,7 +62,7 @@ class HomeBanner extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: const Color(0xFF0646D8),
+      color: Colors.transparent,
       padding: EdgeInsets.symmetric(
         horizontal: MediaQuery.sizeOf(context).width < 600 ? 16 : 24,
         vertical: 7,
