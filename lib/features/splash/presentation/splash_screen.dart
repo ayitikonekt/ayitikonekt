@@ -141,7 +141,8 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                           SizedBox(height: 10),
                           Text(
-                            'Conectando la comunidad\nhaitiana en Chile.',
+                            'Rete konekte ak kominote ayisyèn nan,\n'
+                            'nenpot kotew ye sou planèt la',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.white,
