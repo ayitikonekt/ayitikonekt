@@ -343,6 +343,26 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
         actions: [
+          Consumer<MarketplaceProvider>(
+            builder: (context, provider, _) => IconButton(
+              tooltip: 'Actualizar',
+              onPressed: provider.loading
+                  ? null
+                  : () async {
+                      await provider.refresh();
+                      if (mounted) _reloadUser();
+                    },
+              icon: provider.loading
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.refresh_rounded, color: Colors.white),
+            ),
+          ),
           IconButton(
             tooltip: 'Notificaciones',
             onPressed: () {

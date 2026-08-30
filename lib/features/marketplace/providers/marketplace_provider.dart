@@ -77,6 +77,8 @@ class MarketplaceProvider extends ChangeNotifier {
 
   Future<void> refresh() async {
     await loadProducts();
+    final uid = _userId;
+    if (uid != null) await _loadFavorites(uid);
   }
 
   Future<void> createProduct(ProductModel product) async {
@@ -182,7 +184,9 @@ class MarketplaceProvider extends ChangeNotifier {
     try {
       final favorites = await _favoriteService.getFavoriteIds(uid);
       if (_userId != uid) return;
-      _favoriteIds.addAll(favorites);
+      _favoriteIds
+        ..clear()
+        ..addAll(favorites);
       notifyListeners();
     } catch (_) {
       // Si no se pueden cargar, la cuenta sigue funcionando sin favoritos.

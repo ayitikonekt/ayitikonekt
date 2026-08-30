@@ -26,6 +26,23 @@ class FavoritesScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF0646D8),
         foregroundColor: Colors.white,
         title: Text(context.tr('favorites')),
+        actions: [
+          IconButton(
+            tooltip: 'Actualizar',
+            onPressed: marketplaceProvider.loading
+                ? null
+                : marketplaceProvider.refresh,
+            icon: marketplaceProvider.loading
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.refresh_rounded),
+          ),
+        ],
       ),
       body: favorites.isEmpty
           ? Center(

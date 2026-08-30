@@ -239,6 +239,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               else
                                 const SizedBox(width: 48),
                               const Spacer(),
+                              Consumer<MarketplaceProvider>(
+                                builder: (context, provider, _) => IconButton(
+                                  tooltip: 'Actualizar',
+                                  color: Colors.white,
+                                  onPressed: provider.loading
+                                      ? null
+                                      : () async {
+                                          await Future.wait([
+                                            provider.refresh(),
+                                            _reloadProfile(),
+                                          ]);
+                                        },
+                                  icon: provider.loading
+                                      ? const SizedBox.square(
+                                          dimension: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Icon(Icons.refresh_rounded),
+                                ),
+                              ),
                               IconButton(
                                 tooltip: context.tr('notifications'),
                                 color: Colors.white,
