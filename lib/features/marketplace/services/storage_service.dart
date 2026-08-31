@@ -7,12 +7,14 @@ class StorageService {
   Future<String> uploadProductImage({
     required XFile file,
     required String productId,
+    required String ownerId,
   }) async {
     final fileName = DateTime.now().millisecondsSinceEpoch.toString();
 
     final ref = _storage
         .ref()
         .child('products')
+        .child(ownerId)
         .child(productId)
         .child(fileName);
 

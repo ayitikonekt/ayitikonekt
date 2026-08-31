@@ -1,14 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../core/firebase/backend_functions_service.dart';
 import '../../auth/data/user_model.dart';
 import '../../marketplace/models/product_model.dart';
 import '../models/review_model.dart';
 
 class ReviewService {
   final FirebaseFirestore _firestore;
+  final BackendFunctionsService _functions;
 
-  ReviewService({FirebaseFirestore? firestore})
-    : _firestore = firestore ?? FirebaseFirestore.instance;
+  ReviewService({
+    FirebaseFirestore? firestore,
+    BackendFunctionsService? functions,
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _functions = functions ?? BackendFunctionsService();
 
   String reviewId(String productId, String reviewerId) =>
       '${productId}_$reviewerId';
@@ -54,44 +59,11 @@ class ReviewService {
       throw ArgumentError.value(rating, 'rating');
     }
 
-    final reviewRef = _firestore
-        .collection('reviews')
-        .doc(reviewId(product.id, reviewer.uid));
-    final sellerRef = _firestore.collection('users').doc(product.sellerId);
-
-    await _firestore.runTransaction((transaction) async {
-      final existing = await transaction.get(reviewRef);
-      if (existing.exists) throw StateError('duplicate_review');
-      final seller = await transaction.get(sellerRef);
-      final sellerData = seller.data() ?? const <String, dynamic>{};
-      final previousCount = (sellerData['reviewCount'] as num?)?.toInt() ?? 0;
-      final previousTotal =
-          (sellerData['reviewRatingTotal'] as num?)?.toInt() ?? 0;
-      final newCount = previousCount + 1;
-      final newTotal = previousTotal + rating;
-      final newAverage = newTotal / newCount;
-      final now = FieldValue.serverTimestamp();
-
-      transaction.set(reviewRef, {
-        'productId': product.id,
-        'productTitle': product.title,
-        'sellerId': product.sellerId,
-        'sellerName': product.sellerName,
-        'reviewerId': reviewer.uid,
-        'reviewerName': '${reviewer.name} ${reviewer.lastName}'.trim(),
-        'reviewerPhoto': reviewer.photo,
-        'rating': rating,
-        'comment': comment.trim(),
-        'tags': tags,
-        'reported': false,
-        'createdAt': now,
-        'updatedAt': now,
-      });
-      transaction.update(sellerRef, {
-        'reputation': newAverage,
-        'reviewCount': newCount,
-        'reviewRatingTotal': newTotal,
-      });
+    await _functions.call('createReview', {
+      'productId': product.id,
+      'rating': rating,
+      'comment': comment.trim(),
+      'tags': tags,
     });
   }
 }

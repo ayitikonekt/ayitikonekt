@@ -100,27 +100,19 @@ class MarketplaceProvider extends ChangeNotifier {
   }
 
   Future<void> recordView(ProductModel product) async {
-    final index = _products.indexWhere((item) => item.id == product.id);
-    if (index >= 0) {
-      _products[index] = _products[index].copyWith(
-        views: _products[index].views + 1,
-      );
-      notifyListeners();
-    }
-
     try {
-      await _service.incrementViews(product.id);
-    } catch (_) {
-      // Revertimos el cambio visual si Firebase rechaza la operación.
+      final confirmedViewCount = await _service.incrementViews(product.id);
       final currentIndex = _products.indexWhere(
         (item) => item.id == product.id,
       );
-      if (currentIndex >= 0 && _products[currentIndex].views > 0) {
+      if (currentIndex >= 0) {
         _products[currentIndex] = _products[currentIndex].copyWith(
-          views: _products[currentIndex].views - 1,
+          views: confirmedViewCount,
         );
         notifyListeners();
       }
+    } catch (error) {
+      debugPrint('No se pudo registrar la visualización: $error');
     }
   }
 
@@ -220,7 +212,9 @@ class MarketplaceProvider extends ChangeNotifier {
           )
           .toList();
       notifyListeners();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('No se pudo actualizar el favorito: $error');
+      debugPrintStack(stackTrace: stackTrace);
       if (_userId != uid) return;
       if (wasFavorite) {
         _favoriteIds.add(product.id);

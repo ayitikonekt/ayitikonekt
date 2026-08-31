@@ -172,6 +172,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         final url = await _storageService.uploadProductImage(
           file: image,
           productId: widget.product.id,
+          ownerId: widget.product.sellerId,
         );
 
         imageUrls.add(url);

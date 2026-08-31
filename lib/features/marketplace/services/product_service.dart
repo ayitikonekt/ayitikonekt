@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../core/firebase/backend_functions_service.dart';
 import '../models/product_model.dart';
 
 abstract interface class ProductRepository {
@@ -7,12 +8,13 @@ abstract interface class ProductRepository {
   Future<List<ProductModel>> getProducts();
   Stream<List<ProductModel>> getProductsStream();
   Future<void> updateProduct(ProductModel product);
-  Future<void> incrementViews(String productId);
+  Future<int> incrementViews(String productId);
   Future<void> deleteProduct(String id);
 }
 
 class ProductService implements ProductRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final BackendFunctionsService _functions = BackendFunctionsService();
 
   /// Crear producto
   @override
@@ -61,10 +63,11 @@ class ProductService implements ProductRepository {
 
   /// Incrementa de forma atómica para no perder vistas simultáneas.
   @override
-  Future<void> incrementViews(String productId) async {
-    await _firestore.collection('products').doc(productId).update({
-      'views': FieldValue.increment(1),
+  Future<int> incrementViews(String productId) async {
+    final data = await _functions.call('recordProductView', {
+      'productId': productId,
     });
+    return (data['viewCount'] as num).toInt();
   }
 
   /// Eliminar producto

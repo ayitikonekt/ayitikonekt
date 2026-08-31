@@ -111,6 +111,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
           (image) => _storageService.uploadProductImage(
             file: image,
             productId: productId,
+            ownerId: user.uid,
           ),
         ),
       );
