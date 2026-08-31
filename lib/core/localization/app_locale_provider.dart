@@ -73,6 +73,9 @@ const Map<String, Map<String, String>> _translations = {
     'changeLater': 'Podrás cambiar estas opciones más adelante.',
     'createAccount': 'Crear cuenta',
     'signIn': 'Iniciar sesión',
+    'termsAndConditions': 'Términos y condiciones',
+    'termsComingSoon':
+        'Estamos preparando los términos y condiciones de AyitiKonekt. El contenido completo estará disponible próximamente.',
     'forgotPassword': '¿Olvidaste tu contraseña?',
     'resetEmailRequired': 'Ingresa tu correo para recuperar la contraseña',
     'resetEmailSent': 'Correo de recuperación enviado',
@@ -348,6 +351,9 @@ const Map<String, Map<String, String>> _translations = {
     'changeLater': 'You can change these options later.',
     'createAccount': 'Create account',
     'signIn': 'Sign in',
+    'termsAndConditions': 'Terms and conditions',
+    'termsComingSoon':
+        'We are preparing the AyitiKonekt terms and conditions. The complete content will be available soon.',
     'forgotPassword': 'Forgot your password?',
     'resetEmailRequired': 'Enter your email to reset your password',
     'resetEmailSent': 'Password reset email sent',
@@ -622,6 +628,9 @@ const Map<String, Map<String, String>> _translations = {
     'changeLater': 'Vous pourrez modifier ces options plus tard.',
     'createAccount': 'Créer un compte',
     'signIn': 'Se connecter',
+    'termsAndConditions': "Conditions générales d’utilisation",
+    'termsComingSoon':
+        "Nous préparons les conditions générales d’utilisation d’AyitiKonekt. Le contenu complet sera bientôt disponible.",
     'forgotPassword': 'Mot de passe oublié ?',
     'resetEmailRequired':
         'Saisissez votre e-mail pour réinitialiser le mot de passe',
@@ -898,6 +907,9 @@ const Map<String, Map<String, String>> _translations = {
     'changeLater': 'Ou ka chanje opsyon sa yo pita.',
     'createAccount': 'Kreye kont',
     'signIn': 'Konekte',
+    'termsAndConditions': 'Tèm ak kondisyon',
+    'termsComingSoon':
+        'N ap prepare tèm ak kondisyon AyitiKonekt yo. Tout kontni an ap disponib talè konsa.',
     'forgotPassword': 'Ou bliye modpas ou?',
     'resetEmailRequired': 'Antre imèl ou pou chanje modpas la',
     'resetEmailSent': 'Imèl pou chanje modpas la voye',
@@ -1168,6 +1180,9 @@ const Map<String, Map<String, String>> _translations = {
     'changeLater': 'Você poderá alterar estas opções mais tarde.',
     'createAccount': 'Criar conta',
     'signIn': 'Entrar',
+    'termsAndConditions': 'Termos e condições',
+    'termsComingSoon':
+        'Estamos preparando os termos e condições do AyitiKonekt. O conteúdo completo estará disponível em breve.',
     'forgotPassword': 'Esqueceu sua senha?',
     'resetEmailRequired': 'Digite seu e-mail para redefinir a senha',
     'resetEmailSent': 'E-mail de recuperação enviado',

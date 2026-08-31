@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../auth/presentation/login_screen.dart';
 import '../../auth/presentation/register_screen.dart';
+import '../../auth/presentation/terms_and_conditions_screen.dart';
 import '../../../core/localization/app_locale_provider.dart';
 import '../../../shared/widgets/app_back_button.dart';
 import 'widgets/brand_logo.dart';
@@ -127,6 +128,27 @@ class WelcomeScreen extends StatelessWidget {
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TermsAndConditionsScreen(
+                                country: country,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          context.tr('termsAndConditions'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
                           ),
                         ),
                       ),
