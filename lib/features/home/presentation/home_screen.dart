@@ -136,7 +136,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final publications = category == null
         ? provider.allProducts
         : provider.allProducts
-              .where((product) => product.category == category)
+              .where(
+                (product) => category == 'Servicios'
+                    ? product.isService
+                    : product.category == category,
+              )
               .toList();
     final available = publications.where((product) => !product.isSold).length;
     final sold = publications.length - available;
@@ -432,14 +436,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         .where((product) => product.category == 'Empleos')
                         .length;
                     final services = provider.allProducts
-                        .where((product) => product.category == 'Servicios')
+                        .where((product) => product.isService)
+                        .length;
+                    final products = provider.allProducts
+                        .where((product) => !product.isService)
                         .length;
 
                     return Row(
                       children: [
                         StatCard(
                           title: context.tr('products'),
-                          value: '${provider.allProducts.length}',
+                          value: '$products',
                           icon: Icons.inventory_2,
                           color: Colors.blue,
                           onTap: () => _showMarketplaceSummary(
@@ -656,6 +663,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: ProductCard(
                               title: product.title,
                               price: product.price,
+                              priceNegotiable: product.priceNegotiable,
                               location: '${product.city}, ${product.country}',
                               imagePath: product.images.isNotEmpty
                                   ? product.images.first

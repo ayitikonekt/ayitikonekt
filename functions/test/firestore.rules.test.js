@@ -31,6 +31,10 @@ function validProduct(id, sellerId, overrides = {}) {
     description: "Descripción válida",
     price: 10,
     category: "Otros",
+    listingType: "product",
+    priceNegotiable: false,
+    serviceArea: "",
+    availability: "",
     city: "Santiago",
     country: "Chile",
     address: "",
@@ -88,6 +92,10 @@ async function seed() {
       description: "Prueba",
       price: 10,
       category: "Otros",
+      listingType: "product",
+      priceNegotiable: false,
+      serviceArea: "",
+      availability: "",
       city: "Santiago",
       country: "Chile",
       address: "",
@@ -266,6 +274,41 @@ test("las fechas de productos deben ser generadas por el servidor", async () => 
     title: "Fecha manipulada",
     updatedAt: "2026-08-31T12:00:00.000Z",
   }));
+});
+
+test("un servicio válido puede publicarse con precio a convenir", async () => {
+  await assertSucceeds(setDoc(
+    doc(user("alice"), "products/service-alice"),
+    validProduct("service-alice", "alice", {
+      title: "Servicio de gasfitería",
+      category: "Gasfitería",
+      listingType: "service",
+      price: 0,
+      priceNegotiable: true,
+      serviceArea: "Santiago Centro",
+      availability: "Lunes a sábado",
+      condition: "No aplica",
+    }),
+  ));
+});
+
+test("un servicio incompleto o un producto negociable son rechazados", async () => {
+  await assertFails(setDoc(
+    doc(user("alice"), "products/incomplete-service"),
+    validProduct("incomplete-service", "alice", {
+      listingType: "service",
+      price: 0,
+      priceNegotiable: true,
+      condition: "No aplica",
+    }),
+  ));
+  await assertFails(setDoc(
+    doc(user("alice"), "products/negotiable-product"),
+    validProduct("negotiable-product", "alice", {
+      price: 0,
+      priceNegotiable: true,
+    }),
+  ));
 });
 
 test("favoritos y notificaciones son privados y no admiten creación directa", async () => {

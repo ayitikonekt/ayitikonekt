@@ -131,7 +131,10 @@ class FakeProductRepository implements ProductRepository {
   Stream<List<ProductModel>> getProductsStream() => Stream.value(items);
 
   @override
-  Future<void> incrementViews(String productId) async {}
+  Future<int> incrementViews(String productId) async {
+    final product = items.firstWhere((item) => item.id == productId);
+    return product.views;
+  }
 
   @override
   Future<void> updateProduct(ProductModel product) async {

@@ -134,7 +134,9 @@ class FavoritesScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              '\$${product.price.toStringAsFixed(0)}',
+                              product.priceNegotiable
+                                  ? 'A convenir'
+                                  : '\$${product.price.toStringAsFixed(0)}',
                               style: const TextStyle(
                                 color: Color(0xFF0057B8),
                                 fontWeight: FontWeight.bold,

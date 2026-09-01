@@ -318,6 +318,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
+  Widget _serviceDetailRow(IconData icon, String label, String value) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, color: Colors.grey),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(
+          '$label: $value',
+          style: const TextStyle(fontSize: 16),
+        ),
+      ),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
     final marketplaceProvider = context.watch<MarketplaceProvider>();
@@ -629,7 +643,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         const SizedBox(height: 16),
 
                         Text(
-                          "\$${product.price.toStringAsFixed(0)}",
+                          product.priceNegotiable
+                              ? 'A convenir'
+                              : "\$${product.price.toStringAsFixed(0)}",
                           style: const TextStyle(
                             fontSize: 28,
                             color: Color(0xFFF20D1B),
@@ -656,21 +672,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                         const SizedBox(height: 18),
 
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.inventory_2_outlined,
-                              color: Colors.grey,
-                            ),
-
-                            const SizedBox(width: 8),
-
-                            Text(
-                              product.condition,
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ],
-                        ),
+                        if (product.isService) ...[
+                          _serviceDetailRow(
+                            Icons.map_outlined,
+                            'Zona de atención',
+                            product.serviceArea,
+                          ),
+                          const SizedBox(height: 14),
+                          _serviceDetailRow(
+                            Icons.schedule_outlined,
+                            'Disponibilidad',
+                            product.availability,
+                          ),
+                        ] else
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.inventory_2_outlined,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                product.condition,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
 
                         const SizedBox(height: 18),
 

@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'home_screen.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../marketplace/presentation/marketplace_screen.dart';
-import '../../marketplace/presentation/create_product_screen.dart';
+import '../../marketplace/presentation/publication_type_screen.dart';
 import '../../marketplace/providers/marketplace_provider.dart';
 import '../../marketplace/presentation/favorites_screen.dart';
 import '../../profile/presentation/profile_screen.dart';
@@ -52,7 +52,7 @@ class _MainNavigationState extends State<MainNavigation> {
           if (index == 2) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const CreateProductScreen()),
+              MaterialPageRoute(builder: (_) => const PublicationTypeScreen()),
             );
             return;
           }

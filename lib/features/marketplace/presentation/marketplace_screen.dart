@@ -10,7 +10,7 @@ import '../models/product_model.dart';
 import '../providers/marketplace_provider.dart';
 import 'all_products_screen.dart';
 import 'categories_screen.dart';
-import 'create_product_screen.dart';
+import 'publication_type_screen.dart';
 import 'product_detail_screen.dart';
 import 'product_filter_screen.dart';
 import '../../../core/localization/app_locale_provider.dart';
@@ -272,6 +272,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     return ProductCard(
                       title: product.title,
                       price: product.price,
+                      priceNegotiable: product.priceNegotiable,
                       location: '${product.city}, ${product.country}',
                       category: product.category,
                       imagePath: product.images.isNotEmpty
@@ -307,7 +308,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const CreateProductScreen()),
+            MaterialPageRoute(builder: (_) => const PublicationTypeScreen()),
           );
         },
       ),

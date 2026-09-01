@@ -26,11 +26,16 @@ class _EditProductScreenState extends State<EditProductScreen> {
   late final TextEditingController _cityController;
   late final TextEditingController _countryController;
   late final TextEditingController _addressController;
+  late final TextEditingController _serviceAreaController;
+  late final TextEditingController _availabilityController;
 
   late String _category;
   late String _condition;
   bool _saving = false;
   bool _pickingImages = false;
+  late bool _priceNegotiable;
+
+  bool get _isService => widget.product.isService;
 
   final _picker = ImagePicker();
   final StorageService _storageService = StorageService();
@@ -56,6 +61,16 @@ class _EditProductScreenState extends State<EditProductScreen> {
     'Electrodomésticos',
     'Mascotas',
     'Otros',
+    'Gasfitería',
+    'Electricidad',
+    'Pintura',
+    'Limpieza',
+    'Jardinería',
+    'Belleza',
+    'Reparaciones',
+    'Clases',
+    'Transporte',
+    'Tecnología',
   ];
 
   static const _conditions = ['Nuevo', 'Usado', 'Reacondicionado'];
@@ -79,9 +94,16 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _countryController = TextEditingController(text: widget.product.country);
 
     _addressController = TextEditingController(text: widget.product.address);
+    _serviceAreaController = TextEditingController(
+      text: widget.product.serviceArea,
+    );
+    _availabilityController = TextEditingController(
+      text: widget.product.availability,
+    );
 
     _category = widget.product.category;
     _condition = widget.product.condition;
+    _priceNegotiable = widget.product.priceNegotiable;
     _existingImages = List<String>.from(widget.product.images);
   }
 
@@ -93,6 +115,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _cityController.dispose();
     _countryController.dispose();
     _addressController.dispose();
+    _serviceAreaController.dispose();
+    _availabilityController.dispose();
 
     super.dispose();
   }
@@ -108,10 +132,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
   Future<void> _pickImages() async {
     if (_pickingImages) return;
 
-    final availableSlots = 10 - _existingImages.length - _selectedImages.length;
+    final availableSlots = 8 - _existingImages.length - _selectedImages.length;
     if (availableSlots <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Puedes agregar un máximo de 10 fotos.')),
+        const SnackBar(content: Text('Puedes agregar un máximo de 8 fotos.')),
       );
       return;
     }
@@ -147,9 +171,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
     final priceText = _priceController.text.trim().replaceAll(',', '.');
 
-    final price = double.tryParse(priceText);
+    final price = _priceNegotiable ? 0.0 : double.tryParse(priceText);
 
-    if (price == null || price <= 0) {
+    if (price == null || (!_priceNegotiable && price <= 0)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ingrese un precio válido.')),
       );
@@ -195,6 +219,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
         description: _descriptionController.text.trim(),
         price: price,
         category: _category,
+        listingType: widget.product.listingType,
+        priceNegotiable: _priceNegotiable,
+        serviceArea: _serviceAreaController.text.trim(),
+        availability: _availabilityController.text.trim(),
         condition: _condition,
         country: _countryController.text.trim(),
         city: _cityController.text.trim(),
@@ -361,7 +389,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          '${_existingImages.length + _selectedImages.length}/10 fotos',
+          '${_existingImages.length + _selectedImages.length}/8 fotos',
           textAlign: TextAlign.center,
           style: const TextStyle(color: Color(0xFF667085), fontSize: 12),
         ),
@@ -379,7 +407,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
           SizedBox(height: 8),
           Text('Agregar fotos', style: TextStyle(fontWeight: FontWeight.w700)),
           SizedBox(height: 4),
-          Text('Máx. 10 fotos', style: TextStyle(color: Color(0xFF667085))),
+          Text('Máx. 8 fotos', style: TextStyle(color: Color(0xFF667085))),
         ],
       );
     }
@@ -435,7 +463,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _editLabel('Título'),
+        _editLabel(_isService ? 'Nombre del servicio' : 'Título del producto'),
         TextFormField(
           controller: _titleController,
           textInputAction: TextInputAction.next,
@@ -443,30 +471,44 @@ class _EditProductScreenState extends State<EditProductScreen> {
           validator: _required,
         ),
         const SizedBox(height: 14),
-        _editPair(
-          first: TextFormField(
-            controller: _priceController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(hintText: 'Ej. 650.000'),
-            validator: _required,
+        if (_isService) ...[
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _priceNegotiable,
+            title: const Text('Precio a convenir'),
+            controlAffinity: ListTileControlAffinity.leading,
+            onChanged: (value) => setState(() => _priceNegotiable = value ?? false),
           ),
-          firstLabel: 'Precio',
-          second: DropdownButtonFormField<String>(
-            initialValue: _condition,
-            isExpanded: true,
-            decoration: const InputDecoration(),
-            items: _conditions
-                .map(
-                  (value) => DropdownMenuItem(value: value, child: Text(value)),
-                )
-                .toList(),
-            onChanged: (value) => setState(() => _condition = value!),
+          if (!_priceNegotiable)
+            TextFormField(
+              controller: _priceController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(hintText: 'Ej. 25.000'),
+              validator: _required,
+            ),
+        ] else
+          _editPair(
+            first: TextFormField(
+              controller: _priceController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(hintText: 'Ej. 650.000'),
+              validator: _required,
+            ),
+            firstLabel: 'Precio',
+            second: DropdownButtonFormField<String>(
+              initialValue: _condition,
+              isExpanded: true,
+              decoration: const InputDecoration(),
+              items: _conditions
+                  .map((value) => DropdownMenuItem(value: value, child: Text(value)))
+                  .toList(),
+              onChanged: (value) => setState(() => _condition = value!),
+            ),
+            secondLabel: 'Condición',
+            wide: wide,
           ),
-          secondLabel: 'Condición',
-          wide: wide,
-        ),
         const SizedBox(height: 14),
-        _editLabel('Categoría'),
+        _editLabel(_isService ? 'Especialidad' : 'Categoría'),
         DropdownButtonFormField<String>(
           initialValue: _category,
           isExpanded: true,
@@ -507,14 +549,22 @@ class _EditProductScreenState extends State<EditProductScreen> {
           wide: wide,
         ),
         const SizedBox(height: 14),
-        _editLabel('Dirección (opcional)'),
-        TextFormField(
-          controller: _addressController,
-          decoration: const InputDecoration(
-            hintText: 'Referencia o dirección aproximada',
-            prefixIcon: Icon(Icons.location_on_outlined),
+        if (_isService) ...[
+          _editLabel('Zona donde atiende'),
+          TextFormField(controller: _serviceAreaController, validator: _required),
+          const SizedBox(height: 14),
+          _editLabel('Disponibilidad'),
+          TextFormField(controller: _availabilityController, validator: _required),
+        ] else ...[
+          _editLabel('Dirección (opcional)'),
+          TextFormField(
+            controller: _addressController,
+            decoration: const InputDecoration(
+              hintText: 'Referencia o dirección aproximada',
+              prefixIcon: Icon(Icons.location_on_outlined),
+            ),
           ),
-        ),
+        ],
       ],
     ),
   );

@@ -236,6 +236,8 @@ class MarketplaceProvider extends ChangeNotifier {
                 product.title.toLowerCase().contains(query) ||
                 product.description.toLowerCase().contains(query) ||
                 product.category.toLowerCase().contains(query) ||
+                product.serviceArea.toLowerCase().contains(query) ||
+                product.availability.toLowerCase().contains(query) ||
                 product.city.toLowerCase().contains(query) ||
                 product.country.toLowerCase().contains(query),
           )
@@ -247,9 +249,9 @@ class MarketplaceProvider extends ChangeNotifier {
     }
 
     if (_type == "Productos") {
-      list = list.where((product) => product.category != "Servicios").toList();
+      list = list.where((product) => !product.isService).toList();
     } else if (_type == "Servicios") {
-      list = list.where((product) => product.category == "Servicios").toList();
+      list = list.where((product) => product.isService).toList();
     }
 
     if (_minPrice != null) {

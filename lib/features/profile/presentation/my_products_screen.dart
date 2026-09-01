@@ -277,7 +277,9 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '\$${product.price.toStringAsFixed(0)}',
+                      product.priceNegotiable
+                          ? 'A convenir'
+                          : '\$${product.price.toStringAsFixed(0)}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

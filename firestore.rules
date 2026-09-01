@@ -34,14 +34,16 @@ service cloud.firestore {
 
     function validProduct(data, productId) {
       return data.keys().hasAll([
-          'id', 'title', 'description', 'price', 'category', 'city', 'country',
+          'id', 'title', 'description', 'price', 'category', 'listingType',
+          'priceNegotiable', 'serviceArea', 'availability', 'city', 'country',
           'address', 'latitude', 'longitude', 'images', 'sellerId',
           'sellerName', 'sellerPhoto', 'sellerPhone', 'sellerEmail',
           'condition', 'isFeatured', 'isSold', 'views', 'favorites',
           'createdAt', 'updatedAt'
         ])
         && data.keys().hasOnly([
-          'id', 'title', 'description', 'price', 'category', 'city', 'country',
+          'id', 'title', 'description', 'price', 'category', 'listingType',
+          'priceNegotiable', 'serviceArea', 'availability', 'city', 'country',
           'address', 'latitude', 'longitude', 'images', 'sellerId',
           'sellerName', 'sellerPhoto', 'sellerPhone', 'sellerEmail',
           'condition', 'isFeatured', 'isSold', 'views', 'favorites',
@@ -53,6 +55,19 @@ service cloud.firestore {
         && data.description.size() <= 3000
         && data.price is number && data.price >= 0 && data.price <= 1000000000
         && data.category is string && data.category.size() >= 1 && data.category.size() <= 60
+        && data.listingType is string && data.listingType in ['product', 'service']
+        && data.priceNegotiable is bool
+        && data.serviceArea is string && data.serviceArea.size() <= 300
+        && data.availability is string && data.availability.size() <= 300
+        && ((data.listingType == 'product'
+              && data.priceNegotiable == false && data.price > 0
+              && data.serviceArea == '' && data.availability == '')
+            || (data.listingType == 'service'
+              && data.condition == 'No aplica'
+              && data.serviceArea.size() >= 2
+              && data.availability.size() >= 2
+              && ((data.priceNegotiable == true && data.price == 0)
+                || (data.priceNegotiable == false && data.price > 0))))
         && data.city is string && data.city.size() <= 120
         && data.country is string && data.country.size() >= 2 && data.country.size() <= 80
         && data.address is string && data.address.size() <= 300
@@ -124,11 +139,16 @@ service cloud.firestore {
         && validProduct(request.resource.data, productId)
         && request.resource.data.sellerId == resource.data.sellerId
         && request.resource.data.id == resource.data.id
+        && ((!resource.data.keys().hasAll(['listingType'])
+              && request.resource.data.listingType == 'product')
+            || (resource.data.keys().hasAll(['listingType'])
+              && request.resource.data.listingType == resource.data.listingType))
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt is timestamp
         && request.resource.data.updatedAt == request.time
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'title', 'description', 'price', 'category', 'city', 'country',
+          'title', 'description', 'price', 'category', 'listingType',
+          'priceNegotiable', 'serviceArea', 'availability', 'city', 'country',
           'address', 'latitude', 'longitude', 'images', 'condition',
           'isSold', 'updatedAt'
         ]);

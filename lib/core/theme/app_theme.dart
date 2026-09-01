@@ -24,9 +24,6 @@ class AppTheme {
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textPrimary,
-        iconTheme: IconThemeData(
-          color: AppColors.primary,
-        ),
       ),
 
       inputDecorationTheme: _OutlineInputBorderTheme(),

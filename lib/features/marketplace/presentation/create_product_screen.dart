@@ -11,7 +11,9 @@ import '../providers/marketplace_provider.dart';
 import '../services/storage_service.dart';
 
 class CreateProductScreen extends StatefulWidget {
-  const CreateProductScreen({super.key});
+  final String listingType;
+
+  const CreateProductScreen({super.key, this.listingType = 'product'});
 
   @override
   State<CreateProductScreen> createState() => _CreateProductScreenState();
@@ -25,6 +27,8 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   final _cityController = TextEditingController();
   final _countryController = TextEditingController(text: 'Chile');
   final _addressController = TextEditingController();
+  final _serviceAreaController = TextEditingController();
+  final _availabilityController = TextEditingController();
   final _picker = ImagePicker();
   final _storageService = StorageService();
 
@@ -32,6 +36,9 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   bool _saving = false;
   String _category = 'Electrónica';
   String _condition = 'Usado';
+  bool _priceNegotiable = false;
+
+  bool get _isService => widget.listingType == 'service';
 
   static const _categories = [
     'Electrónica',
@@ -39,12 +46,6 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     'Computadores',
     'Vehículos',
     'Vivienda',
-    'Empleos',
-    'Servicios',
-    'Construcción',
-    'Electricista',
-    'Gasfiter',
-    'Pintor',
     'Ropa',
     'Zapatos',
     'Muebles',
@@ -52,7 +53,27 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     'Mascotas',
     'Otros',
   ];
+  static const _serviceSpecialties = [
+    'Gasfitería',
+    'Electricidad',
+    'Construcción',
+    'Pintura',
+    'Limpieza',
+    'Jardinería',
+    'Belleza',
+    'Reparaciones',
+    'Clases',
+    'Transporte',
+    'Tecnología',
+    'Otros',
+  ];
   static const _conditions = ['Nuevo', 'Usado', 'Reacondicionado'];
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isService) _category = _serviceSpecialties.first;
+  }
 
   @override
   void dispose() {
@@ -62,6 +83,8 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     _cityController.dispose();
     _countryController.dispose();
     _addressController.dispose();
+    _serviceAreaController.dispose();
+    _availabilityController.dispose();
     super.dispose();
   }
 
@@ -70,7 +93,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     if (images.isEmpty || !mounted) return;
 
     setState(() {
-      _selectedImages = images.take(10).map((image) => image).toList();
+      _selectedImages = images.take(8).map((image) => image).toList();
     });
   }
 
@@ -81,12 +104,12 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
         .trim()
         .replaceAll('.', '')
         .replaceAll(',', '.');
-    final price = double.tryParse(priceText);
+    final price = _priceNegotiable ? 0.0 : double.tryParse(priceText);
     final messenger = ScaffoldMessenger.of(context);
     final user = context.read<AuthProvider>().user;
     final marketplace = context.read<MarketplaceProvider>();
 
-    if (price == null || price <= 0) {
+    if (price == null || (!_priceNegotiable && price <= 0)) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Ingrese un precio válido.')),
       );
@@ -130,7 +153,11 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
           description: _descriptionController.text.trim(),
           price: price,
           category: _category,
-          condition: _condition,
+          listingType: widget.listingType,
+          priceNegotiable: _priceNegotiable,
+          serviceArea: _serviceAreaController.text.trim(),
+          availability: _availabilityController.text.trim(),
+          condition: _isService ? 'No aplica' : _condition,
           country: _countryController.text.trim(),
           city: _cityController.text.trim(),
           address: _addressController.text.trim(),
@@ -143,7 +170,13 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
       if (!mounted) return;
       Navigator.pop(context);
       messenger.showSnackBar(
-        const SnackBar(content: Text('Producto publicado correctamente.')),
+        SnackBar(
+          content: Text(
+            _isService
+                ? 'Servicio publicado correctamente.'
+                : 'Producto publicado correctamente.',
+          ),
+        ),
       );
     } catch (error) {
       if (mounted) {
@@ -166,9 +199,9 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
         showWhenCannotPop: false,
         foregroundColor: Colors.white,
       ),
-      title: const Text(
-        'Publicar anuncio',
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+      title: Text(
+        _isService ? 'Publicar servicio' : 'Publicar producto',
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
       ),
       actions: [
         IconButton(
@@ -234,9 +267,11 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                                         strokeWidth: 2,
                                       ),
                                     )
-                                  : const Text(
-                                      'Publicar anuncio',
-                                      style: TextStyle(
+                                  : Text(
+                                      _isService
+                                          ? 'Publicar servicio'
+                                          : 'Publicar producto',
+                                      style: const TextStyle(
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -286,7 +321,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'Máx. 10 fotos',
+                        'Máx. 8 fotos',
                         style: TextStyle(color: Color(0xFF667085)),
                       ),
                     ],
@@ -314,7 +349,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
           TextButton.icon(
             onPressed: _saving ? null : _pickImages,
             icon: const Icon(Icons.photo_library_outlined),
-            label: Text('Cambiar imágenes (${_selectedImages.length}/10)'),
+            label: Text('Cambiar imágenes (${_selectedImages.length}/8)'),
           ),
         ],
       ],
@@ -325,42 +360,63 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _label('Título'),
+        _label(_isService ? 'Nombre del servicio' : 'Título del producto'),
         TextFormField(
           controller: _titleController,
           textInputAction: TextInputAction.next,
-          decoration: const InputDecoration(hintText: 'Ej. iPhone 15 Pro'),
+          decoration: InputDecoration(
+            hintText: _isService ? 'Ej. Reparación de gasfitería' : 'Ej. iPhone 15 Pro',
+          ),
           validator: _required,
         ),
         const SizedBox(height: 14),
-        _responsivePair(
-          TextFormField(
-            controller: _priceController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(hintText: 'Ej. 650.000'),
-            validator: _required,
+        if (_isService) ...[
+          _label('Precio'),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _priceNegotiable,
+            title: const Text('Precio a convenir'),
+            subtitle: const Text('El cliente deberá consultar el valor.'),
+            controlAffinity: ListTileControlAffinity.leading,
+            onChanged: (value) => setState(() => _priceNegotiable = value ?? false),
           ),
-          'Precio',
-          DropdownButtonFormField<String>(
-            initialValue: _condition,
-            isExpanded: true,
-            decoration: const InputDecoration(),
-            items: _conditions
-                .map((item) => DropdownMenuItem(value: item, child: Text(item)))
-                .toList(),
-            onChanged: (value) => setState(() => _condition = value!),
+          if (!_priceNegotiable)
+            TextFormField(
+              controller: _priceController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(hintText: 'Ej. 25.000'),
+              validator: _required,
+            ),
+        ] else
+          _responsivePair(
+            TextFormField(
+              controller: _priceController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(hintText: 'Ej. 650.000'),
+              validator: _required,
+            ),
+            'Precio',
+            DropdownButtonFormField<String>(
+              initialValue: _condition,
+              isExpanded: true,
+              decoration: const InputDecoration(),
+              items: _conditions
+                  .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+                  .toList(),
+              onChanged: (value) => setState(() => _condition = value!),
+            ),
+            'Condición',
+            wide,
           ),
-          'Condición',
-          wide,
-        ),
         const SizedBox(height: 14),
-        _label('Categoría'),
+        _label(_isService ? 'Especialidad' : 'Categoría'),
         DropdownButtonFormField<String>(
           initialValue: _category,
           isExpanded: true,
           decoration: const InputDecoration(),
-          items: _categories
+          items: (_isService ? _serviceSpecialties : _categories)
               .map((item) => DropdownMenuItem(value: item, child: Text(item)))
               .toList(),
           onChanged: (value) => setState(() => _category = value!),
@@ -371,13 +427,15 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
           controller: _descriptionController,
           minLines: 4,
           maxLines: 7,
-          decoration: const InputDecoration(
-            hintText: 'Describe tu producto o servicio...',
+          decoration: InputDecoration(
+            hintText: _isService
+                ? 'Explica qué trabajo realizas y qué incluye...'
+                : 'Describe el producto, sus características y estado...',
           ),
           validator: _required,
         ),
         const SizedBox(height: 14),
-        _label('Ubicación aproximada'),
+        _label(_isService ? 'Ubicación base' : 'Ubicación aproximada'),
         _responsivePair(
           TextFormField(
             controller: _cityController,
@@ -394,14 +452,36 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
           wide,
         ),
         const SizedBox(height: 14),
-        _label('Dirección (opcional)'),
-        TextFormField(
-          controller: _addressController,
-          decoration: const InputDecoration(
-            hintText: 'Referencia o dirección aproximada',
-            prefixIcon: Icon(Icons.location_on_outlined),
+        if (_isService) ...[
+          _label('Zona donde atiende'),
+          TextFormField(
+            controller: _serviceAreaController,
+            decoration: const InputDecoration(
+              hintText: 'Ej. Santiago Centro, Providencia y comunas cercanas',
+              prefixIcon: Icon(Icons.map_outlined),
+            ),
+            validator: _required,
           ),
-        ),
+          const SizedBox(height: 14),
+          _label('Disponibilidad'),
+          TextFormField(
+            controller: _availabilityController,
+            decoration: const InputDecoration(
+              hintText: 'Ej. Lunes a sábado, de 09:00 a 18:00',
+              prefixIcon: Icon(Icons.schedule_outlined),
+            ),
+            validator: _required,
+          ),
+        ] else ...[
+          _label('Dirección (opcional)'),
+          TextFormField(
+            controller: _addressController,
+            decoration: const InputDecoration(
+              hintText: 'Referencia o dirección aproximada',
+              prefixIcon: Icon(Icons.location_on_outlined),
+            ),
+          ),
+        ],
       ],
     ),
   );

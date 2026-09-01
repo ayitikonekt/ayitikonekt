@@ -21,7 +21,11 @@ class AllProductsScreen extends StatelessWidget {
     final List<ProductModel> products = category == null
         ? provider.allProducts
         : provider.allProducts
-              .where((product) => product.category == category)
+              .where(
+                (product) => category == 'Servicios'
+                    ? product.isService
+                    : product.category == category,
+              )
               .toList();
 
     return Scaffold(
@@ -76,6 +80,7 @@ class AllProductsScreen extends StatelessWidget {
                     return ProductCard(
                       title: product.title,
                       price: product.price,
+                      priceNegotiable: product.priceNegotiable,
                       location: "${product.city}, ${product.country}",
                       category: product.category,
                       imagePath: product.images.isNotEmpty

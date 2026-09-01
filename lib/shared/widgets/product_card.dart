@@ -5,6 +5,7 @@ import 'animated_favorite_button.dart';
 class ProductCard extends StatelessWidget {
   final String title;
   final double price;
+  final bool priceNegotiable;
   final String location;
   final String category;
   final String imagePath;
@@ -20,6 +21,7 @@ class ProductCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.price,
+    this.priceNegotiable = false,
     required this.location,
     required this.category,
     required this.imagePath,
@@ -163,7 +165,7 @@ class ProductCard extends StatelessWidget {
                   const SizedBox(height: 8),
 
                   Text(
-                    "\$${price.toStringAsFixed(0)}",
+                    priceNegotiable ? 'A convenir' : "\$${price.toStringAsFixed(0)}",
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,

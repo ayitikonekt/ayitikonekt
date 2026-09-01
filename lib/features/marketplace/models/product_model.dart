@@ -8,6 +8,10 @@ class ProductModel {
   final String description;
   final double price;
   final String category;
+  final String listingType;
+  final bool priceNegotiable;
+  final String serviceArea;
+  final String availability;
 
   // Ubicación
   final String city;
@@ -45,6 +49,10 @@ class ProductModel {
     required this.description,
     required this.price,
     required this.category,
+    this.listingType = 'product',
+    this.priceNegotiable = false,
+    this.serviceArea = '',
+    this.availability = '',
     required this.city,
     required this.country,
     this.address = '',
@@ -71,6 +79,10 @@ class ProductModel {
     String? description,
     double? price,
     String? category,
+    String? listingType,
+    bool? priceNegotiable,
+    String? serviceArea,
+    String? availability,
     String? city,
     String? country,
     String? address,
@@ -96,6 +108,10 @@ class ProductModel {
       description: description ?? this.description,
       price: price ?? this.price,
       category: category ?? this.category,
+      listingType: listingType ?? this.listingType,
+      priceNegotiable: priceNegotiable ?? this.priceNegotiable,
+      serviceArea: serviceArea ?? this.serviceArea,
+      availability: availability ?? this.availability,
       city: city ?? this.city,
       country: country ?? this.country,
       address: address ?? this.address,
@@ -130,6 +146,10 @@ class ProductModel {
       description: map['description'] ?? '',
       price: (map['price'] ?? 0).toDouble(),
       category: map['category'] ?? '',
+      listingType: map['listingType'] == 'service' ? 'service' : 'product',
+      priceNegotiable: map['priceNegotiable'] == true,
+      serviceArea: map['serviceArea'] ?? '',
+      availability: map['availability'] ?? '',
       city: map['city'] ?? '',
       country: map['country'] ?? '',
       address: map['address'] ?? '',
@@ -158,6 +178,10 @@ class ProductModel {
       'description': description,
       'price': price,
       'category': category,
+      'listingType': listingType,
+      'priceNegotiable': priceNegotiable,
+      'serviceArea': serviceArea,
+      'availability': availability,
       'city': city,
       'country': country,
       'address': address,
@@ -178,4 +202,6 @@ class ProductModel {
       'updatedAt': updatedAt.toIso8601String(),
     };
   }
+
+  bool get isService => listingType == 'service';
 }
