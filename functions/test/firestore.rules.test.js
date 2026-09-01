@@ -23,6 +23,7 @@ let env;
 const user = (uid) => env.authenticatedContext(uid).firestore();
 const admin = () => env.authenticatedContext("admin", {admin: true}).firestore();
 const moderator = () => env.authenticatedContext("moderator", {moderator: true}).firestore();
+const support = () => env.authenticatedContext("support", {support: true}).firestore();
 const anonymous = () => env.unauthenticatedContext().firestore();
 
 function validProduct(id, sellerId, overrides = {}) {
@@ -125,7 +126,33 @@ async function seed() {
     await setDoc(doc(db, "supportTickets/ticket-bob"), {
       userId: "bob",
       status: "received",
-      message: "Privado",
+      category: "supportTechnical",
+      subject: "Problema privado",
+      description: "Descripcion privada del problema",
+      contact: "bob@example.com",
+      attachments: [],
+      assignedTo: "",
+      responseCount: 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    await setDoc(doc(db, "supportTickets/ticket-bob/responses/response-1"), {
+      ticketId: "ticket-bob",
+      authorId: "support",
+      authorRole: "support",
+      note: "Respuesta privada",
+      previousStatus: "received",
+      status: "reviewing",
+      createdAt: serverTimestamp(),
+    });
+    await setDoc(doc(db, "supportAudit/audit-1"), {
+      type: "support_intervention",
+      ticketId: "ticket-bob",
+      actorId: "support",
+      actorRole: "support",
+      previousStatus: "received",
+      status: "reviewing",
+      createdAt: serverTimestamp(),
     });
     await setDoc(doc(db, "conversations/alice-bob"), {
       participantIds: ["alice", "bob"],
@@ -361,17 +388,36 @@ test("solo el dueño puede marcar su notificación como leída", async () => {
   await assertFails(updateDoc(doc(user("bob"), "users/bob/notifications/notification-1"), {type: "falsa"}));
 });
 
-test("los tickets solamente son visibles por su dueño o un administrador", async () => {
+test("los tickets solamente son visibles por su dueño, soporte o administrador", async () => {
   await assertSucceeds(getDoc(doc(user("bob"), "supportTickets/ticket-bob")));
   await assertFails(getDoc(doc(user("alice"), "supportTickets/ticket-bob")));
+  await assertSucceeds(getDoc(doc(support(), "supportTickets/ticket-bob")));
   await assertSucceeds(getDoc(doc(admin(), "supportTickets/ticket-bob")));
+  await assertFails(getDoc(doc(moderator(), "supportTickets/ticket-bob")));
 });
 
-test("un usuario no puede crear un ticket para otra cuenta", async () => {
+test("los tickets solo pueden ser creados y modificados por el backend", async () => {
   await assertFails(addDoc(collection(user("alice"), "supportTickets"), {
-    userId: "bob",
+    userId: "alice",
     status: "received",
   }));
+  await assertFails(updateDoc(doc(support(), "supportTickets/ticket-bob"), {
+    status: "closed",
+  }));
+  await assertFails(deleteDoc(doc(admin(), "supportTickets/ticket-bob")));
+});
+
+test("respuestas y auditoria de soporte no pueden falsificarse desde clientes", async () => {
+  await assertSucceeds(getDoc(doc(user("bob"), "supportTickets/ticket-bob/responses/response-1")));
+  await assertFails(getDoc(doc(user("alice"), "supportTickets/ticket-bob/responses/response-1")));
+  await assertSucceeds(getDoc(doc(support(), "supportTickets/ticket-bob/responses/response-1")));
+  await assertFails(setDoc(doc(support(), "supportTickets/ticket-bob/responses/fake"), {
+    authorId: "support", note: "falsa",
+  }));
+  await assertSucceeds(getDoc(doc(support(), "supportAudit/audit-1")));
+  await assertSucceeds(getDoc(doc(admin(), "supportAudit/audit-1")));
+  await assertFails(getDoc(doc(moderator(), "supportAudit/audit-1")));
+  await assertFails(setDoc(doc(admin(), "supportAudit/fake"), {status: "closed"}));
 });
 
 test("los mensajes solo son visibles por participantes", async () => {

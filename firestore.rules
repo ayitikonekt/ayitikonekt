@@ -11,11 +11,18 @@ service cloud.firestore {
     }
 
     function admin() {
-      return signedIn() && request.auth.token.admin == true;
+      return signedIn() && 'admin' in request.auth.token
+        && request.auth.token.admin == true;
     }
 
     function moderator() {
-      return signedIn() && request.auth.token.moderator == true;
+      return signedIn() && 'moderator' in request.auth.token
+        && request.auth.token.moderator == true;
+    }
+
+    function support() {
+      return signedIn() && 'support' in request.auth.token
+        && request.auth.token.support == true;
     }
 
     function staff() {
@@ -196,12 +203,22 @@ service cloud.firestore {
     }
 
     match /supportTickets/{ticketId} {
-      allow create: if signedIn()
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.status == 'received';
       allow read: if signedIn()
-        && (resource.data.userId == request.auth.uid || admin());
-      allow update, delete: if admin();
+        && (resource.data.userId == request.auth.uid || support() || admin());
+      allow create, update, delete: if false;
+
+      match /responses/{responseId} {
+        allow read: if signedIn()
+          && (get(/databases/$(database)/documents/supportTickets/$(ticketId))
+                .data.userId == request.auth.uid
+            || support() || admin());
+        allow write: if false;
+      }
+    }
+
+    match /supportAudit/{auditId} {
+      allow read: if support() || admin();
+      allow write: if false;
     }
 
     match /conversations/{conversationId} {

@@ -23,6 +23,10 @@ function otherStorage() {
   return testEnv.authenticatedContext(otherId).storage();
 }
 
+function supportStorage() {
+  return testEnv.authenticatedContext("support-agent", { support: true }).storage();
+}
+
 function attachment(storage, fileName) {
   return ref(
     storage,
@@ -97,4 +101,25 @@ test("solo el propietario puede leer o eliminar el archivo temporal", async () =
   await assertFails(getBytes(otherRef));
   await assertFails(deleteObject(otherRef));
   await assertSucceeds(deleteObject(ownerRef));
+});
+
+test("evidencias de soporte validan propietario, tipo y acceso del personal", async () => {
+  const path = `support_tickets/${ownerId}/ticket-1/evidence.png`;
+  const ownerRef = ref(ownerStorage(), path);
+  await assertSucceeds(
+    uploadBytes(ownerRef, new Uint8Array([1, 2, 3]), { contentType: "image/png" }),
+  );
+  await assertSucceeds(getBytes(ref(supportStorage(), path)));
+  await assertFails(
+    uploadBytes(ref(otherStorage(), path), new Uint8Array([1]), {
+      contentType: "image/png",
+    }),
+  );
+  await assertFails(
+    uploadBytes(
+      ref(ownerStorage(), `support_tickets/${ownerId}/ticket-1/script.svg`),
+      new Uint8Array([1]),
+      { contentType: "image/svg+xml" },
+    ),
+  );
 });

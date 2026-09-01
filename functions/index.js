@@ -20,6 +20,14 @@ const monitoredCallable = {enforceAppCheck: false};
 const MAX_CONTACT_REQUESTS_PER_HOUR = 30;
 const MAX_REVIEW_REPORTS_PER_HOUR = 10;
 const MAX_MESSAGES_PER_HOUR = 120;
+const MAX_SUPPORT_TICKETS_PER_HOUR = 10;
+const SUPPORT_CATEGORIES = new Set([
+  "supportAccount", "supportListings", "supportSafety", "supportReviews",
+  "supportTechnical", "supportOther",
+]);
+const SUPPORT_STATUSES = new Set([
+  "received", "reviewing", "waiting", "resolved", "closed",
+]);
 
 function authenticatedUid(request) {
   const uid = request.auth?.uid;
@@ -44,6 +52,44 @@ function requiredIdentifier(value, field, maxLength = 330) {
 
 function conversationIdFor(productId, firstUid, secondUid) {
   return `${productId}_${[firstUid, secondUid].sort().join("_")}`;
+}
+
+function hasRole(request, role) {
+  return request.auth?.token?.[role] === true;
+}
+
+function requireSupportStaff(request) {
+  const uid = authenticatedUid(request);
+  if (!hasRole(request, "support") && !hasRole(request, "admin")) {
+    throw new HttpsError("permission-denied", "Support access required.");
+  }
+  return uid;
+}
+
+async function verifiedSupportAttachments(uid, ticketId, rawPaths) {
+  if (!Array.isArray(rawPaths) || rawPaths.length > 3) {
+    throw new HttpsError("invalid-argument", "Invalid support attachments.");
+  }
+  const bucket = getStorage().bucket();
+  const prefix = `support_tickets/${uid}/${ticketId}/`;
+  const verified = [];
+  for (const rawPath of rawPaths) {
+    const objectPath = requiredString(rawPath, "attachmentPath", 700);
+    if (!objectPath.startsWith(prefix) || objectPath.slice(prefix.length).includes("/")) {
+      throw new HttpsError("permission-denied", "Invalid attachment owner.");
+    }
+    const [metadata] = await bucket.file(objectPath).getMetadata().catch(() => {
+      throw new HttpsError("failed-precondition", "Attachment does not exist.");
+    });
+    const size = Number(metadata.size || 0);
+    const contentType = String(metadata.contentType || "");
+    if (!/^image\/(jpeg|png|webp)$/.test(contentType) ||
+        !Number.isSafeInteger(size) || size < 1 || size > 5 * 1024 * 1024) {
+      throw new HttpsError("invalid-argument", "Invalid support attachment.");
+    }
+    verified.push(objectPath);
+  }
+  return verified;
 }
 
 function publicProfile(uid, data) {
@@ -680,4 +726,108 @@ exports.migrateLegacyReviews = onCall(async (request) => {
   }
   if (migrated > 0) await batch.commit();
   return {migrated, remainingPossible: snapshot.size === 400};
+});
+
+exports.createSupportTicket = onCall(monitoredCallable, async (request) => {
+  const uid = authenticatedUid(request);
+  const ticketId = requiredIdentifier(request.data?.ticketId, "ticketId", 160);
+  const category = requiredString(request.data?.category, "category", 40);
+  const subject = requiredString(request.data?.subject, "subject", 100);
+  const description = requiredString(request.data?.description, "description", 1200);
+  const contact = requiredString(request.data?.contact, "contact", 254);
+  if (!SUPPORT_CATEGORIES.has(category) || subject.length < 4 || description.length < 10) {
+    throw new HttpsError("invalid-argument", "Invalid support request.");
+  }
+
+  const attachments = await verifiedSupportAttachments(
+    uid,
+    ticketId,
+    request.data?.attachmentPaths || [],
+  );
+  const ticketRef = db.collection("supportTickets").doc(ticketId);
+  const userRef = db.collection("users").doc(uid);
+  const rateLimitRef = userRef.collection("securityLimits").doc("supportTickets");
+
+  await db.runTransaction(async (transaction) => {
+    const now = Timestamp.now();
+    const [userSnapshot, ticketSnapshot, rateLimitSnapshot] = await Promise.all([
+      transaction.get(userRef),
+      transaction.get(ticketRef),
+      transaction.get(rateLimitRef),
+    ]);
+    if (!userSnapshot.exists) {
+      throw new HttpsError("failed-precondition", "User profile is required.");
+    }
+    if (ticketSnapshot.exists) {
+      throw new HttpsError("already-exists", "Support ticket already exists.");
+    }
+    transaction.set(rateLimitRef, nextRateLimit(
+      rateLimitSnapshot,
+      MAX_SUPPORT_TICKETS_PER_HOUR,
+      now,
+    ));
+    transaction.set(ticketRef, {
+      userId: uid,
+      category,
+      subject,
+      description,
+      contact,
+      attachments,
+      status: "received",
+      assignedTo: "",
+      responseCount: 0,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+  return {ticketId};
+});
+
+exports.updateSupportTicket = onCall(async (request) => {
+  const staffId = requireSupportStaff(request);
+  const ticketId = requiredIdentifier(request.data?.ticketId, "ticketId", 160);
+  const status = requiredString(request.data?.status, "status", 20);
+  const note = requiredString(request.data?.note, "note", 2000);
+  if (!SUPPORT_STATUSES.has(status)) {
+    throw new HttpsError("invalid-argument", "Invalid support status.");
+  }
+  const ticketRef = db.collection("supportTickets").doc(ticketId);
+  const responseRef = ticketRef.collection("responses").doc();
+  const auditRef = db.collection("supportAudit").doc();
+
+  await db.runTransaction(async (transaction) => {
+    const ticketSnapshot = await transaction.get(ticketRef);
+    if (!ticketSnapshot.exists) throw new HttpsError("not-found", "Ticket not found.");
+    const ticket = ticketSnapshot.data();
+    const previousStatus = String(ticket.status || "received");
+    const responseCount = Number(ticket.responseCount || 0);
+    if (!Number.isSafeInteger(responseCount) || responseCount < 0) {
+      throw new HttpsError("failed-precondition", "Invalid ticket state.");
+    }
+    transaction.update(ticketRef, {
+      status,
+      assignedTo: staffId,
+      responseCount: responseCount + 1,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    transaction.set(responseRef, {
+      ticketId,
+      authorId: staffId,
+      authorRole: hasRole(request, "admin") ? "admin" : "support",
+      note,
+      previousStatus,
+      status,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    transaction.set(auditRef, {
+      type: "support_intervention",
+      ticketId,
+      actorId: staffId,
+      actorRole: hasRole(request, "admin") ? "admin" : "support",
+      previousStatus,
+      status,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  });
+  return {updated: true};
 });

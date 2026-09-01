@@ -60,7 +60,9 @@ class StorageService {
       await file.readAsBytes(),
       SettableMetadata(contentType: file.mimeType ?? 'image/jpeg'),
     );
-    return snapshot.ref.getDownloadURL();
+    // El backend recibe la ruta, verifica propietario, tipo y tamaÃ±o, y solo
+    // entonces la asocia al ticket. No se confÃ­a en una URL enviada al cliente.
+    return snapshot.ref.fullPath;
   }
 
   Future<void> deleteImage(String imageUrl) async {

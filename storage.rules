@@ -12,6 +12,12 @@ service firebase.storage {
         && request.auth.token.admin == true;
     }
 
+    function support() {
+      return request.auth != null
+        && 'support' in request.auth.token
+        && request.auth.token.support == true;
+    }
+
     function validImage(maxBytes) {
       return request.resource != null
         && request.resource.size <= maxBytes
@@ -46,8 +52,15 @@ service firebase.storage {
     }
 
     match /support_tickets/{uid}/{ticketId}/{fileName} {
-      allow read: if owner(uid) || admin();
-      allow create, update: if owner(uid) && validImage(5 * 1024 * 1024);
+      allow read: if owner(uid) || support() || admin();
+      allow create: if owner(uid)
+        && ticketId.matches('[A-Za-z0-9_-]{1,160}')
+        && fileName.matches('[A-Za-z0-9_.-]{1,160}')
+        && request.resource != null
+        && request.resource.size > 0
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+      allow update: if false;
       allow delete: if owner(uid) || admin();
     }
 
