@@ -134,6 +134,9 @@ async function seed() {
       senderId: "bob",
       text: "Hola",
     });
+    await setDoc(doc(db, "conversations/invalid-duplicate"), {
+      participantIds: ["alice", "alice"],
+    });
     await setDoc(doc(db, "reviewInteractions/product-bob_alice"), {
       productId: "product-bob",
       sellerId: "bob",
@@ -382,6 +385,23 @@ test("un usuario no puede enviar mensajes con la identidad de otro", async () =>
     senderId: "bob",
     text: "Mensaje falso",
   }));
+});
+
+test("conversaciones y mensajes solo pueden ser creados por el backend", async () => {
+  await assertFails(setDoc(doc(user("alice"), "conversations/directa"), {
+    participantIds: ["alice", "bob"],
+    productId: "product-bob",
+  }));
+  await assertFails(setDoc(doc(user("alice"), "conversations/alice-bob/messages/directo"), {
+    senderId: "alice",
+    text: "Mensaje directo",
+    attachments: [],
+    createdAt: serverTimestamp(),
+  }));
+});
+
+test("una conversación con participantes repetidos es inválida", async () => {
+  await assertFails(getDoc(doc(user("alice"), "conversations/invalid-duplicate")));
 });
 
 test("reseñas y eventos de visualización no admiten escritura directa", async () => {

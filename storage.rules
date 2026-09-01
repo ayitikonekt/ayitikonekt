@@ -7,13 +7,24 @@ service firebase.storage {
     }
 
     function admin() {
-      return request.auth != null && request.auth.token.admin == true;
+      return request.auth != null
+        && 'admin' in request.auth.token
+        && request.auth.token.admin == true;
     }
 
     function validImage(maxBytes) {
       return request.resource != null
         && request.resource.size <= maxBytes
         && request.resource.contentType.matches('image/(jpeg|png|webp|heic|heif)');
+    }
+
+    function validMessageFile() {
+      return request.resource != null
+        && request.resource.size > 0
+        && request.resource.size <= 8 * 1024 * 1024
+        && request.resource.contentType.matches(
+          '(image/(jpeg|png|webp)|application/pdf)'
+        );
     }
 
     match /products/{uid}/{productId}/{fileName} {
@@ -37,6 +48,19 @@ service firebase.storage {
     match /support_tickets/{uid}/{ticketId}/{fileName} {
       allow read: if owner(uid) || admin();
       allow create, update: if owner(uid) && validImage(5 * 1024 * 1024);
+      allow delete: if owner(uid) || admin();
+    }
+
+    // Los archivos se cargan en un espacio temporal propiedad del remitente.
+    // Cloud Functions verifica que participe en la conversación antes de
+    // incorporarlos a un mensaje.
+    match /conversation_uploads/{uid}/{conversationId}/{fileName} {
+      allow read: if owner(uid);
+      allow create: if owner(uid)
+        && conversationId.matches('[A-Za-z0-9_-]{1,700}')
+        && fileName.matches('[A-Za-z0-9_.-]{1,160}')
+        && validMessageFile();
+      allow update: if false;
       allow delete: if owner(uid) || admin();
     }
 

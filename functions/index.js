@@ -3,6 +3,7 @@ const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {initializeApp} = require("firebase-admin/app");
 const {getFirestore, FieldValue, Timestamp} = require("firebase-admin/firestore");
+const {getStorage} = require("firebase-admin/storage");
 const {
   MAX_FAVORITE_CHANGES_PER_HOUR,
   MAX_UNIQUE_VIEWS_PER_HOUR,
@@ -18,6 +19,7 @@ const db = getFirestore();
 const monitoredCallable = {enforceAppCheck: false};
 const MAX_CONTACT_REQUESTS_PER_HOUR = 30;
 const MAX_REVIEW_REPORTS_PER_HOUR = 10;
+const MAX_MESSAGES_PER_HOUR = 120;
 
 function authenticatedUid(request) {
   const uid = request.auth?.uid;
@@ -30,6 +32,18 @@ function requiredString(value, field, maxLength) {
     throw new HttpsError("invalid-argument", `Invalid ${field}.`);
   }
   return value.trim();
+}
+
+function requiredIdentifier(value, field, maxLength = 330) {
+  const identifier = requiredString(value, field, maxLength);
+  if (!/^[A-Za-z0-9_-]+$/.test(identifier)) {
+    throw new HttpsError("invalid-argument", `Invalid ${field}.`);
+  }
+  return identifier;
+}
+
+function conversationIdFor(productId, firstUid, secondUid) {
+  return `${productId}_${[firstUid, secondUid].sort().join("_")}`;
 }
 
 function publicProfile(uid, data) {
@@ -173,6 +187,200 @@ exports.recordProductView = onCall(monitoredCallable, async (request) => {
     transaction.update(productRef, {views: currentCount + 1});
     return {viewCount: currentCount + 1, counted: true};
   });
+});
+
+exports.createConversation = onCall(monitoredCallable, async (request) => {
+  const uid = authenticatedUid(request);
+  const productId = requiredIdentifier(request.data?.productId, "productId", 160);
+  const otherUserId = requiredIdentifier(request.data?.otherUserId, "otherUserId", 128);
+  if (otherUserId === uid) {
+    throw new HttpsError("invalid-argument", "Participants must be different.");
+  }
+  const productRef = db.collection("products").doc(productId);
+  const otherUserRef = db.collection("users").doc(otherUserId);
+  const conversationId = conversationIdFor(productId, uid, otherUserId);
+  const conversationRef = db.collection("conversations").doc(conversationId);
+
+  return db.runTransaction(async (transaction) => {
+    const [productSnapshot, otherUserSnapshot, conversationSnapshot] = await Promise.all([
+      transaction.get(productRef),
+      transaction.get(otherUserRef),
+      transaction.get(conversationRef),
+    ]);
+    if (!productSnapshot.exists) throw new HttpsError("not-found", "Product not found.");
+    if (!otherUserSnapshot.exists) throw new HttpsError("not-found", "Participant not found.");
+    const product = productSnapshot.data();
+    const sellerId = String(product.sellerId || "");
+    if (sellerId !== uid && sellerId !== otherUserId) {
+      throw new HttpsError("permission-denied", "The seller must participate.");
+    }
+    if (!conversationSnapshot.exists) {
+      transaction.set(conversationRef, {
+        participantIds: [uid, otherUserId].sort(),
+        productId,
+        createdBy: uid,
+        status: "active",
+        lastMessage: "",
+        lastMessageAt: null,
+        lastSenderId: "",
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    } else {
+      const participants = conversationSnapshot.data().participantIds;
+      if (!Array.isArray(participants) || participants.length !== 2 ||
+          !participants.includes(uid) || !participants.includes(otherUserId)) {
+        throw new HttpsError("failed-precondition", "Invalid conversation.");
+      }
+    }
+    return {conversationId};
+  });
+});
+
+async function verifiedMessageAttachments(uid, conversationId, rawAttachments) {
+  if (!Array.isArray(rawAttachments) || rawAttachments.length > 4) {
+    throw new HttpsError("invalid-argument", "Invalid attachments.");
+  }
+  const prefix = `conversation_uploads/${uid}/${conversationId}/`;
+  const allowedTypes = new Set([
+    "image/jpeg", "image/png", "image/webp", "application/pdf",
+  ]);
+  return Promise.all(rawAttachments.map(async (rawPath) => {
+    const storagePath = requiredString(rawPath, "attachment path", 700);
+    if (!storagePath.startsWith(prefix) || storagePath.includes("..")) {
+      throw new HttpsError("permission-denied", "Invalid attachment owner.");
+    }
+    const [metadata] = await getStorage().bucket().file(storagePath).getMetadata();
+    const contentType = String(metadata.contentType || "");
+    const size = Number(metadata.size || 0);
+    if (!allowedTypes.has(contentType) || !Number.isSafeInteger(size) ||
+        size < 1 || size > 8 * 1024 * 1024) {
+      throw new HttpsError("invalid-argument", "Invalid attachment file.");
+    }
+    return {
+      storagePath,
+      contentType,
+      size,
+      name: storagePath.split("/").pop().slice(0, 160),
+    };
+  }));
+}
+
+exports.sendMessage = onCall(monitoredCallable, async (request) => {
+  const uid = authenticatedUid(request);
+  const conversationId = requiredIdentifier(
+    request.data?.conversationId,
+    "conversationId",
+    700,
+  );
+  const text = typeof request.data?.text === "string" ? request.data.text.trim() : "";
+  if (text.length > 2000) throw new HttpsError("invalid-argument", "Message is too long.");
+  const attachments = await verifiedMessageAttachments(
+    uid,
+    conversationId,
+    request.data?.attachments ?? [],
+  );
+  if (!text && attachments.length === 0) {
+    throw new HttpsError("invalid-argument", "Message cannot be empty.");
+  }
+
+  const conversationRef = db.collection("conversations").doc(conversationId);
+  const senderRef = db.collection("users").doc(uid);
+  const rateLimitRef = senderRef.collection("securityLimits").doc("messages");
+  const messageRef = conversationRef.collection("messages").doc();
+
+  return db.runTransaction(async (transaction) => {
+    const now = Timestamp.now();
+    const [conversationSnapshot, senderSnapshot, rateLimitSnapshot] = await Promise.all([
+      transaction.get(conversationRef),
+      transaction.get(senderRef),
+      transaction.get(rateLimitRef),
+    ]);
+    if (!conversationSnapshot.exists) {
+      throw new HttpsError("not-found", "Conversation not found.");
+    }
+    if (!senderSnapshot.exists) {
+      throw new HttpsError("failed-precondition", "Sender profile is required.");
+    }
+    const conversation = conversationSnapshot.data();
+    const participants = conversation.participantIds;
+    if (!Array.isArray(participants) || participants.length !== 2 ||
+        new Set(participants).size !== 2 || !participants.includes(uid) ||
+        conversation.status !== "active") {
+      throw new HttpsError("permission-denied", "Invalid conversation participant.");
+    }
+    const previousRequest = rateLimitSnapshot.data()?.lastRequestAt;
+    if (previousRequest instanceof Timestamp &&
+        now.toMillis() - previousRequest.toMillis() < 750) {
+      throw new HttpsError("resource-exhausted", "Messages are being sent too quickly.");
+    }
+    transaction.set(rateLimitRef, nextRateLimit(
+      rateLimitSnapshot,
+      MAX_MESSAGES_PER_HOUR,
+      now,
+    ));
+    transaction.set(messageRef, {
+      senderId: uid,
+      text,
+      attachments,
+      type: attachments.length > 0 ? (text ? "mixed" : "attachment") : "text",
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    transaction.update(conversationRef, {
+      lastMessage: text.substring(0, 240),
+      lastMessageAt: FieldValue.serverTimestamp(),
+      lastSenderId: uid,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    const recipientId = participants.find((participant) => participant !== uid);
+    transaction.set(
+      db.collection("users").doc(recipientId).collection("notifications").doc(`message_${messageRef.id}`),
+      {
+        type: "message",
+        title: "Nuevo mensaje",
+        message: text ? text.substring(0, 160) : "Recibiste un archivo adjunto.",
+        conversationId,
+        actorId: uid,
+        read: false,
+        createdAt: FieldValue.serverTimestamp(),
+      },
+    );
+    return {messageId: messageRef.id};
+  });
+});
+
+exports.getMessageAttachmentUrl = onCall(monitoredCallable, async (request) => {
+  const uid = authenticatedUid(request);
+  const conversationId = requiredIdentifier(
+    request.data?.conversationId,
+    "conversationId",
+    700,
+  );
+  const messageId = requiredIdentifier(request.data?.messageId, "messageId", 128);
+  const index = request.data?.index;
+  if (!Number.isInteger(index) || index < 0 || index > 3) {
+    throw new HttpsError("invalid-argument", "Invalid attachment index.");
+  }
+  const conversationRef = db.collection("conversations").doc(conversationId);
+  const messageRef = conversationRef.collection("messages").doc(messageId);
+  const [conversationSnapshot, messageSnapshot] = await Promise.all([
+    conversationRef.get(), messageRef.get(),
+  ]);
+  if (!conversationSnapshot.exists || !messageSnapshot.exists) {
+    throw new HttpsError("not-found", "Message not found.");
+  }
+  const participants = conversationSnapshot.data().participantIds;
+  if (!Array.isArray(participants) || participants.length !== 2 ||
+      !participants.includes(uid)) {
+    throw new HttpsError("permission-denied", "Conversation access denied.");
+  }
+  const attachments = messageSnapshot.data().attachments;
+  if (!Array.isArray(attachments) || !attachments[index]?.storagePath) {
+    throw new HttpsError("not-found", "Attachment not found.");
+  }
+  const [url] = await getStorage().bucket().file(attachments[index].storagePath)
+    .getSignedUrl({action: "read", expires: Date.now() + 15 * 60 * 1000});
+  return {url, expiresInSeconds: 900};
 });
 
 exports.registerProductInteraction = onCall(monitoredCallable, async (request) => {
