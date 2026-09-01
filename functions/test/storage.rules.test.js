@@ -8,6 +8,7 @@ const {
   initializeTestEnvironment,
 } = require("@firebase/rules-unit-testing");
 const { deleteObject, getBytes, ref, uploadBytes } = require("firebase/storage");
+const {doc, setDoc} = require("firebase/firestore");
 
 const projectId = "demo-ayitikonekt-security";
 const ownerId = "message-owner";
@@ -37,6 +38,12 @@ function attachment(storage, fileName) {
 before(async () => {
   testEnv = await initializeTestEnvironment({
     projectId,
+    firestore: {
+      rules: fs.readFileSync(
+        path.join(__dirname, "..", "..", "firestore.rules"),
+        "utf8",
+      ),
+    },
     storage: {
       rules: fs.readFileSync(
         path.join(__dirname, "..", "..", "storage.rules"),
@@ -47,7 +54,13 @@ before(async () => {
 });
 
 beforeEach(async () => {
+  await testEnv.clearFirestore();
   await testEnv.clearStorage();
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "products/product-1"), {
+      sellerId: ownerId,
+    });
+  });
 });
 
 after(async () => {
@@ -121,5 +134,39 @@ test("evidencias de soporte validan propietario, tipo y acceso del personal", as
       new Uint8Array([1]),
       { contentType: "image/svg+xml" },
     ),
+  );
+});
+
+test("fotos de productos exigen producto existente, propietario y nombre seguro", async () => {
+  const validPath = `products/${ownerId}/product-1/1788000000000000.jpg`;
+  const validRef = ref(ownerStorage(), validPath);
+  await assertSucceeds(
+    uploadBytes(validRef, new Uint8Array([0xff, 0xd8, 0xff]), {
+      contentType: "image/jpeg",
+    }),
+  );
+  await assertFails(
+    uploadBytes(ref(otherStorage(), validPath), new Uint8Array([1]), {
+      contentType: "image/jpeg",
+    }),
+  );
+  await assertFails(
+    uploadBytes(
+      ref(ownerStorage(), `products/${ownerId}/missing/1788000000000001.jpg`),
+      new Uint8Array([1]),
+      {contentType: "image/jpeg"},
+    ),
+  );
+  await assertFails(
+    uploadBytes(
+      ref(ownerStorage(), `products/${ownerId}/product-1/unsafe name.jpg`),
+      new Uint8Array([1]),
+      {contentType: "image/jpeg"},
+    ),
+  );
+  await assertFails(
+    uploadBytes(validRef, new Uint8Array([0xff, 0xd8, 0xff]), {
+      contentType: "image/jpeg",
+    }),
   );
 });

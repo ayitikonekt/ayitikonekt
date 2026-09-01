@@ -7,6 +7,7 @@ const {
   safeCounter,
   shouldCountProductView,
 } = require("../security");
+const {detectedImageType, isAllowedImage} = require("../image_security");
 
 function snapshot(data = {}) {
   return {data: () => data};
@@ -58,4 +59,22 @@ test("el vendedor no suma vistas y una repetición dentro de una hora tampoco", 
     ),
     true,
   );
+});
+
+test("detecta la firma binaria real de las imagenes", () => {
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const webp = Buffer.from("RIFF0000WEBP", "ascii");
+  assert.equal(detectedImageType(jpeg), "image/jpeg");
+  assert.equal(detectedImageType(png), "image/png");
+  assert.equal(detectedImageType(webp), "image/webp");
+});
+
+test("rechaza archivos disfrazados y tipos declarados incorrectamente", () => {
+  const script = Buffer.from("<script>alert(1)</script>");
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+  assert.equal(isAllowedImage(script, "image/jpeg"), false);
+  assert.equal(isAllowedImage(jpeg, "image/png"), false);
+  assert.equal(isAllowedImage(jpeg, "image/jpeg"), true);
+  assert.equal(isAllowedImage(jpeg, "image/svg+xml"), false);
 });

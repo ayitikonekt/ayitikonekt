@@ -1,6 +1,7 @@
 const {setGlobalOptions} = require("firebase-functions/v2");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
-const {onDocumentWritten} = require("firebase-functions/v2/firestore");
+const {onDocumentDeleted, onDocumentWritten} = require("firebase-functions/v2/firestore");
+const {onObjectFinalized} = require("firebase-functions/v2/storage");
 const {initializeApp} = require("firebase-admin/app");
 const {getFirestore, FieldValue, Timestamp} = require("firebase-admin/firestore");
 const {getStorage} = require("firebase-admin/storage");
@@ -11,6 +12,7 @@ const {
   safeCounter,
   shouldCountProductView,
 } = require("./security");
+const {isAllowedImage} = require("./image_security");
 
 initializeApp();
 setGlobalOptions({maxInstances: 20});
@@ -20,6 +22,7 @@ const monitoredCallable = {enforceAppCheck: false};
 const MAX_CONTACT_REQUESTS_PER_HOUR = 30;
 const MAX_REVIEW_REPORTS_PER_HOUR = 10;
 const MAX_MESSAGES_PER_HOUR = 120;
+const FIREBASE_STORAGE_BUCKET = "ayitikonekt.firebasestorage.app";
 const MAX_SUPPORT_TICKETS_PER_HOUR = 10;
 const SUPPORT_CATEGORIES = new Set([
   "supportAccount", "supportListings", "supportSafety", "supportReviews",
@@ -28,6 +31,16 @@ const SUPPORT_CATEGORIES = new Set([
 const SUPPORT_STATUSES = new Set([
   "received", "reviewing", "waiting", "resolved", "closed",
 ]);
+
+async function firstBytes(file, maximum = 32) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    file.createReadStream({start: 0, end: maximum - 1})
+      .on("data", (chunk) => chunks.push(chunk))
+      .on("end", () => resolve(Buffer.concat(chunks)))
+      .on("error", reject);
+  });
+}
 
 function authenticatedUid(request) {
   const uid = request.auth?.uid;
@@ -114,6 +127,57 @@ exports.syncPublicProfileOnUserWrite = onDocumentWritten("users/{uid}", async (e
     return;
   }
   await profileRef.set(publicProfile(uid, event.data.after.data()));
+});
+
+exports.validateProductImage = onObjectFinalized({
+  bucket: FIREBASE_STORAGE_BUCKET,
+}, async (event) => {
+  const object = event.data;
+  const objectName = String(object.name || "");
+  const match = objectName.match(
+    /^products\/([A-Za-z0-9_-]{1,128})\/([A-Za-z0-9_-]{1,160})\/([A-Za-z0-9_.-]{1,160})$/,
+  );
+  if (!match) return;
+  const [, ownerId, productId] = match;
+  const bucket = getStorage().bucket(object.bucket);
+  const file = bucket.file(objectName);
+  const productSnapshot = await db.collection("products").doc(productId).get();
+  const declaredType = String(object.contentType || "");
+  const size = Number(object.size || 0);
+  let validSignature = false;
+  try {
+    validSignature = isAllowedImage(await firstBytes(file), declaredType);
+  } catch (_) {
+    validSignature = false;
+  }
+  if (!productSnapshot.exists || productSnapshot.data().sellerId !== ownerId ||
+      !Number.isSafeInteger(size) || size < 1 || size > 8 * 1024 * 1024 ||
+      !validSignature) {
+    await file.delete({ignoreNotFound: true});
+    return;
+  }
+
+  const [files] = await bucket.getFiles({prefix: `products/${ownerId}/${productId}/`});
+  const productFiles = files
+    .filter((candidate) => candidate.name.split("/").length === 4)
+    .sort((left, right) => left.name.localeCompare(right.name));
+  const excess = productFiles.slice(8);
+  if (excess.length > 0) {
+    await Promise.all(excess.map((candidate) => candidate.delete({ignoreNotFound: true})));
+  }
+});
+
+exports.cleanupDeletedProductImages = onDocumentDeleted("products/{productId}", async (event) => {
+  const product = event.data?.data() || {};
+  const ownerId = String(product.sellerId || "");
+  const productId = String(event.params.productId || "");
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(ownerId) ||
+      !/^[A-Za-z0-9_-]{1,160}$/.test(productId)) return;
+  const bucket = getStorage().bucket(FIREBASE_STORAGE_BUCKET);
+  await bucket.deleteFiles({
+    prefix: `products/${ownerId}/${productId}/`,
+    force: true,
+  });
 });
 
 // Migra de forma segura cuentas creadas antes de publicProfiles.

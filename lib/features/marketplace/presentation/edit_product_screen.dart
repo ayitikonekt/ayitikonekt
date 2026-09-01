@@ -236,14 +236,19 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
       await marketplaceProvider.updateProduct(updatedProduct);
 
+      // Las fotos retiradas del formulario ya no deben permanecer ocupando
+      // espacio en Storage.
+      final removedImageUrls = widget.product.images.where(
+        (url) => !imageUrls.contains(url),
+      );
+      await Future.wait(removedImageUrls.map(_storageService.deleteImage));
+
       if (!mounted) return;
 
       Navigator.pop(context, true);
     } catch (error) {
       // Si Firestore rechaza la edición, no dejamos fotografías huérfanas.
-      await Future.wait(
-        newlyUploadedUrls.map(_storageService.deleteImage),
-      );
+      await Future.wait(newlyUploadedUrls.map(_storageService.deleteImage));
       if (!mounted) return;
 
       ScaffoldMessenger.of(
@@ -483,12 +488,15 @@ class _EditProductScreenState extends State<EditProductScreen> {
             value: _priceNegotiable,
             title: const Text('Precio a convenir'),
             controlAffinity: ListTileControlAffinity.leading,
-            onChanged: (value) => setState(() => _priceNegotiable = value ?? false),
+            onChanged: (value) =>
+                setState(() => _priceNegotiable = value ?? false),
           ),
           if (!_priceNegotiable)
             TextFormField(
               controller: _priceController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(hintText: 'Ej. 25.000'),
               validator: _required,
             ),
@@ -496,7 +504,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
           _editPair(
             first: TextFormField(
               controller: _priceController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(hintText: 'Ej. 650.000'),
               validator: _required,
             ),
@@ -506,7 +516,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
               isExpanded: true,
               decoration: const InputDecoration(),
               items: _conditions
-                  .map((value) => DropdownMenuItem(value: value, child: Text(value)))
+                  .map(
+                    (value) =>
+                        DropdownMenuItem(value: value, child: Text(value)),
+                  )
                   .toList(),
               onChanged: (value) => setState(() => _condition = value!),
             ),
@@ -557,10 +570,16 @@ class _EditProductScreenState extends State<EditProductScreen> {
         const SizedBox(height: 14),
         if (_isService) ...[
           _editLabel('Zona donde atiende'),
-          TextFormField(controller: _serviceAreaController, validator: _required),
+          TextFormField(
+            controller: _serviceAreaController,
+            validator: _required,
+          ),
           const SizedBox(height: 14),
           _editLabel('Disponibilidad'),
-          TextFormField(controller: _availabilityController, validator: _required),
+          TextFormField(
+            controller: _availabilityController,
+            validator: _required,
+          ),
         ] else ...[
           _editLabel('Dirección (opcional)'),
           TextFormField(

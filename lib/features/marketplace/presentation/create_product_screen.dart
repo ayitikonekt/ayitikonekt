@@ -127,45 +127,54 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     setState(() => _saving = true);
     final now = DateTime.now();
     final productId = now.microsecondsSinceEpoch.toString();
+    final uploadedImageUrls = <String>[];
+    var draftCreated = false;
+
+    final draft = ProductModel(
+      id: productId,
+      sellerId: user.uid,
+      sellerName: userProfile != null
+          ? '${userProfile.name} ${userProfile.lastName}'.trim()
+          : user.displayName ?? 'Usuario',
+      sellerEmail: userProfile?.email ?? user.email ?? '',
+      sellerPhone: userProfile?.phone ?? user.phoneNumber ?? '',
+      sellerPhoto: userProfile?.photo ?? user.photoURL ?? '',
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      price: price,
+      category: _category,
+      listingType: widget.listingType,
+      priceNegotiable: _priceNegotiable,
+      serviceArea: _serviceAreaController.text.trim(),
+      availability: _availabilityController.text.trim(),
+      condition: _isService ? 'No aplica' : _condition,
+      country: _countryController.text.trim(),
+      city: _cityController.text.trim(),
+      address: _addressController.text.trim(),
+      images: const [],
+      createdAt: now,
+      updatedAt: now,
+    );
 
     try {
-      final imageUrls = await Future.wait(
-        _selectedImages.map(
-          (image) => _storageService.uploadProductImage(
+      // Storage solo acepta fotos de productos existentes y pertenecientes al
+      // usuario. El documento se crea vacÃ­o y se completa tras subirlas.
+      await marketplace.createProduct(draft);
+      draftCreated = true;
+      for (final image in _selectedImages) {
+        uploadedImageUrls.add(
+          await _storageService.uploadProductImage(
             file: image,
             productId: productId,
             ownerId: user.uid,
           ),
-        ),
-      );
-
-      await marketplace.createProduct(
-        ProductModel(
-          id: productId,
-          sellerId: user.uid,
-          sellerName: userProfile != null
-              ? '${userProfile.name} ${userProfile.lastName}'.trim()
-              : user.displayName ?? 'Usuario',
-          sellerEmail: userProfile?.email ?? user.email ?? '',
-          sellerPhone: userProfile?.phone ?? user.phoneNumber ?? '',
-          sellerPhoto: userProfile?.photo ?? user.photoURL ?? '',
-          title: _titleController.text.trim(),
-          description: _descriptionController.text.trim(),
-          price: price,
-          category: _category,
-          listingType: widget.listingType,
-          priceNegotiable: _priceNegotiable,
-          serviceArea: _serviceAreaController.text.trim(),
-          availability: _availabilityController.text.trim(),
-          condition: _isService ? 'No aplica' : _condition,
-          country: _countryController.text.trim(),
-          city: _cityController.text.trim(),
-          address: _addressController.text.trim(),
-          images: imageUrls,
-          createdAt: now,
-          updatedAt: now,
-        ),
-      );
+        );
+      }
+      if (uploadedImageUrls.isNotEmpty) {
+        await marketplace.updateProduct(
+          draft.copyWith(images: uploadedImageUrls, updatedAt: DateTime.now()),
+        );
+      }
 
       if (!mounted) return;
       Navigator.pop(context);
@@ -179,6 +188,15 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
         ),
       );
     } catch (error) {
+      await Future.wait(uploadedImageUrls.map(_storageService.deleteImage));
+      if (draftCreated) {
+        try {
+          await marketplace.deleteProduct(productId);
+        } catch (_) {
+          // La funciÃ³n de limpieza del backend retirarÃ¡ cualquier archivo
+          // restante cuando el documento pueda eliminarse.
+        }
+      }
       if (mounted) {
         messenger.showSnackBar(SnackBar(content: Text(error.toString())));
       }
@@ -365,7 +383,9 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
           controller: _titleController,
           textInputAction: TextInputAction.next,
           decoration: InputDecoration(
-            hintText: _isService ? 'Ej. Reparación de gasfitería' : 'Ej. iPhone 15 Pro',
+            hintText: _isService
+                ? 'Ej. Reparación de gasfitería'
+                : 'Ej. iPhone 15 Pro',
           ),
           validator: _required,
         ),
@@ -378,12 +398,15 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
             title: const Text('Precio a convenir'),
             subtitle: const Text('El cliente deberá consultar el valor.'),
             controlAffinity: ListTileControlAffinity.leading,
-            onChanged: (value) => setState(() => _priceNegotiable = value ?? false),
+            onChanged: (value) =>
+                setState(() => _priceNegotiable = value ?? false),
           ),
           if (!_priceNegotiable)
             TextFormField(
               controller: _priceController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               textInputAction: TextInputAction.next,
               decoration: const InputDecoration(hintText: 'Ej. 25.000'),
               validator: _required,
@@ -392,7 +415,9 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
           _responsivePair(
             TextFormField(
               controller: _priceController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               textInputAction: TextInputAction.next,
               decoration: const InputDecoration(hintText: 'Ej. 650.000'),
               validator: _required,
@@ -403,7 +428,9 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               isExpanded: true,
               decoration: const InputDecoration(),
               items: _conditions
-                  .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+                  .map(
+                    (item) => DropdownMenuItem(value: item, child: Text(item)),
+                  )
                   .toList(),
               onChanged: (value) => setState(() => _condition = value!),
             ),

@@ -35,7 +35,18 @@ service firebase.storage {
 
     match /products/{uid}/{productId}/{fileName} {
       allow read: if true;
-      allow create, update: if owner(uid) && validImage(8 * 1024 * 1024);
+      allow create: if owner(uid)
+        && resource == null
+        && productId.matches('[A-Za-z0-9_-]{1,160}')
+        && fileName.matches('[0-9]{10,20}\\.(jpg|png|webp|heic|heif)')
+        && firestore.exists(
+          /databases/(default)/documents/products/$(productId)
+        )
+        && firestore.get(
+          /databases/(default)/documents/products/$(productId)
+        ).data.sellerId == uid
+        && validImage(8 * 1024 * 1024);
+      allow update: if false;
       allow delete: if owner(uid);
     }
 
