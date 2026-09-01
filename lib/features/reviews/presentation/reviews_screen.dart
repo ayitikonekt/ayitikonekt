@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../../core/localization/app_locale_provider.dart';
 import '../../../shared/widgets/app_back_button.dart';
@@ -150,6 +151,52 @@ class _ReviewCard extends StatelessWidget {
 
   const _ReviewCard({required this.review, required this.showReviewer});
 
+  Future<void> _report(BuildContext context) async {
+    final controller = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Denunciar reseña'),
+        content: TextField(
+          controller: controller,
+          maxLength: 500,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            labelText: 'Motivo',
+            hintText: 'Explica por qué esta reseña debe revisarse.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = controller.text.trim();
+              if (value.isNotEmpty) Navigator.pop(dialogContext, value);
+            },
+            child: const Text('Enviar denuncia'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (reason == null || !context.mounted) return;
+    try {
+      await ReviewService().reportReview(reviewId: review.id, reason: reason);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La reseña fue enviada a moderación.')),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo enviar la denuncia.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Card(
     margin: const EdgeInsets.only(bottom: 12),
@@ -186,9 +233,24 @@ class _ReviewCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Text(
-                '${review.createdAt.day}/${review.createdAt.month}/${review.createdAt.year}',
-                style: const TextStyle(color: Color(0xFF667085), fontSize: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${review.createdAt.day}/${review.createdAt.month}/${review.createdAt.year}',
+                    style: const TextStyle(
+                      color: Color(0xFF667085),
+                      fontSize: 12,
+                    ),
+                  ),
+                  if (FirebaseAuth.instance.currentUser?.uid != review.reviewerId)
+                    IconButton(
+                      tooltip: 'Denunciar reseña',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _report(context),
+                      icon: const Icon(Icons.flag_outlined, size: 20),
+                    ),
+                ],
               ),
             ],
           ),

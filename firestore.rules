@@ -14,6 +14,14 @@ service cloud.firestore {
       return signedIn() && request.auth.token.admin == true;
     }
 
+    function moderator() {
+      return signedIn() && request.auth.token.moderator == true;
+    }
+
+    function staff() {
+      return admin() || moderator();
+    }
+
     function validImageList(images) {
       return images is list
         && images.size() <= 8
@@ -160,7 +168,30 @@ service cloud.firestore {
     }
 
     match /reviews/{reviewId} {
-      allow read: if signedIn();
+      allow read: if signedIn()
+        && (resource.data.status == 'published'
+          || resource.data.sellerId == request.auth.uid
+          || resource.data.reviewerId == request.auth.uid
+          || staff());
+      allow write: if false;
+    }
+
+    match /reviewInteractions/{interactionId} {
+      allow read: if signedIn()
+        && (resource.data.reviewerId == request.auth.uid
+          || resource.data.sellerId == request.auth.uid
+          || staff());
+      allow write: if false;
+    }
+
+    match /reviewReports/{reportId} {
+      allow read: if signedIn()
+        && (resource.data.reporterId == request.auth.uid || staff());
+      allow write: if false;
+    }
+
+    match /moderationAudit/{auditId} {
+      allow read: if staff();
       allow write: if false;
     }
 

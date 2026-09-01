@@ -184,6 +184,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
       _saving = true;
     });
     final marketplaceProvider = context.read<MarketplaceProvider>();
+    final newlyUploadedUrls = <String>[];
 
     try {
       final imageUrls = <String>[];
@@ -200,6 +201,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         );
 
         imageUrls.add(url);
+        newlyUploadedUrls.add(url);
       }
 
       final updatedProduct = ProductModel(
@@ -238,6 +240,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
       Navigator.pop(context, true);
     } catch (error) {
+      // Si Firestore rechaza la edición, no dejamos fotografías huérfanas.
+      await Future.wait(
+        newlyUploadedUrls.map(_storageService.deleteImage),
+      );
       if (!mounted) return;
 
       ScaffoldMessenger.of(

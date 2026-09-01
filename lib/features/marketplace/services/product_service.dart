@@ -61,8 +61,26 @@ class ProductService implements ProductRepository {
   /// Actualizar producto
   @override
   Future<void> updateProduct(ProductModel product) async {
-    final data = product.toMap()
-      ..['updatedAt'] = FieldValue.serverTimestamp();
+    // Enviar solo campos que las reglas permiten modificar. Esto evita tocar
+    // accidentalmente propietario, fechas, contadores o campos administrativos.
+    final data = <String, dynamic>{
+      'title': product.title,
+      'description': product.description,
+      'price': product.price,
+      'category': product.category,
+      'priceNegotiable': product.priceNegotiable,
+      'serviceArea': product.serviceArea,
+      'availability': product.availability,
+      'city': product.city,
+      'country': product.country,
+      'address': product.address,
+      'latitude': product.latitude,
+      'longitude': product.longitude,
+      'images': product.images,
+      'condition': product.condition,
+      'isSold': product.isSold,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
     await _firestore
         .collection('products')
         .doc(product.id)

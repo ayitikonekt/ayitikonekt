@@ -55,6 +55,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return;
     }
 
+    final eligible = await ReviewService().eligibleToReview(
+      widget.product.id,
+      authUser.uid,
+    );
+    if (!mounted) return;
+    if (!eligible) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Primero debes contactar al vendedor desde esta publicación.',
+          ),
+        ),
+      );
+      return;
+    }
+
     final reviewer = await UserService().getUser(authUser.uid);
     if (!mounted) return;
     if (reviewer == null) {
@@ -99,6 +115,31 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Future<void> _openUrl(Uri uri) async {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
+    }
+  }
+
+  Future<void> _contactSeller(String channel, Uri uri) async {
+    final currentUser = context.read<AuthProvider>().user;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Inicia sesión para contactar al vendedor.')),
+      );
+      return;
+    }
+    if (currentUser.uid == widget.product.sellerId) return;
+    try {
+      await ReviewService().registerContact(
+        productId: widget.product.id,
+        channel: channel,
+      );
+      await _openUrl(uri);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo registrar el contacto. Inténtalo nuevamente.'),
+        ),
+      );
     }
   }
 
@@ -1052,8 +1093,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     ),
                                     onPressed: phone.isEmpty
                                         ? null
-                                        : () =>
-                                              _openUrl(Uri.parse('tel:$phone')),
+                                        : () => _contactSeller(
+                                            'phone',
+                                            Uri.parse('tel:$phone'),
+                                          ),
                                     icon: const Icon(Icons.phone, size: 19),
                                     label: const Text('Llamar'),
                                   ),
@@ -1072,7 +1115,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     ),
                                     onPressed: email.isEmpty
                                         ? null
-                                        : () => _openUrl(
+                                        : () => _contactSeller(
+                                            'email',
                                             Uri(scheme: 'mailto', path: email),
                                           ),
                                     icon: const Icon(Icons.email, size: 19),
@@ -1099,7 +1143,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                             if (number.length == 9) {
                                               number = '56$number';
                                             }
-                                            _openUrl(
+                                            _contactSeller(
+                                              'whatsapp',
                                               Uri.parse(
                                                 'https://wa.me/$number',
                                               ),

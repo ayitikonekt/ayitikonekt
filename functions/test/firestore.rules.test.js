@@ -22,6 +22,7 @@ let env;
 
 const user = (uid) => env.authenticatedContext(uid).firestore();
 const admin = () => env.authenticatedContext("admin", {admin: true}).firestore();
+const moderator = () => env.authenticatedContext("moderator", {moderator: true}).firestore();
 const anonymous = () => env.unauthenticatedContext().firestore();
 
 function validProduct(id, sellerId, overrides = {}) {
@@ -132,6 +133,37 @@ async function seed() {
     await setDoc(doc(db, "conversations/alice-bob/messages/message-1"), {
       senderId: "bob",
       text: "Hola",
+    });
+    await setDoc(doc(db, "reviewInteractions/product-bob_alice"), {
+      productId: "product-bob",
+      sellerId: "bob",
+      reviewerId: "alice",
+      status: "eligible",
+    });
+    await setDoc(doc(db, "reviews/product-bob_alice"), {
+      productId: "product-bob",
+      operationId: "product-bob_alice",
+      sellerId: "bob",
+      reviewerId: "alice",
+      rating: 5,
+      status: "published",
+    });
+    await setDoc(doc(db, "reviews/hidden-review"), {
+      productId: "product-bob",
+      operationId: "hidden-operation",
+      sellerId: "bob",
+      reviewerId: "charlie",
+      rating: 1,
+      status: "hidden",
+    });
+    await setDoc(doc(db, "reviewReports/product-bob_alice_bob"), {
+      reviewId: "product-bob_alice",
+      reporterId: "bob",
+      status: "open",
+    });
+    await setDoc(doc(db, "moderationAudit/audit-1"), {
+      type: "review_moderation",
+      moderatorId: "moderator",
     });
   });
 }
@@ -355,6 +387,37 @@ test("un usuario no puede enviar mensajes con la identidad de otro", async () =>
 test("reseñas y eventos de visualización no admiten escritura directa", async () => {
   await assertFails(setDoc(doc(user("alice"), "reviews/review-falsa"), {rating: 5}));
   await assertFails(setDoc(doc(user("alice"), "products/product-bob/viewEvents/alice"), {viewerId: "alice"}));
+});
+
+test("las interacciones de reseña son privadas e inmutables", async () => {
+  await assertSucceeds(getDoc(doc(user("alice"), "reviewInteractions/product-bob_alice")));
+  await assertSucceeds(getDoc(doc(user("bob"), "reviewInteractions/product-bob_alice")));
+  await assertFails(getDoc(doc(user("charlie"), "reviewInteractions/product-bob_alice")));
+  await assertFails(setDoc(doc(user("alice"), "reviewInteractions/falsa"), {
+    sellerId: "bob", reviewerId: "alice", status: "eligible",
+  }));
+});
+
+test("una reseña oculta solo es visible para las partes o moderación", async () => {
+  await assertSucceeds(getDoc(doc(user("bob"), "reviews/hidden-review")));
+  await assertSucceeds(getDoc(doc(user("charlie"), "reviews/hidden-review")));
+  await assertSucceeds(getDoc(doc(moderator(), "reviews/hidden-review")));
+  await assertFails(getDoc(doc(user("alice"), "reviews/hidden-review")));
+});
+
+test("las denuncias solo son visibles para quien denuncia y moderación", async () => {
+  await assertSucceeds(getDoc(doc(user("bob"), "reviewReports/product-bob_alice_bob")));
+  await assertSucceeds(getDoc(doc(moderator(), "reviewReports/product-bob_alice_bob")));
+  await assertFails(getDoc(doc(user("alice"), "reviewReports/product-bob_alice_bob")));
+  await assertFails(setDoc(doc(user("alice"), "reviewReports/falsa"), {
+    reviewId: "product-bob_alice", reporterId: "alice", status: "open",
+  }));
+});
+
+test("la auditoría de moderación no puede ser falsificada", async () => {
+  await assertSucceeds(getDoc(doc(moderator(), "moderationAudit/audit-1")));
+  await assertFails(getDoc(doc(user("alice"), "moderationAudit/audit-1")));
+  await assertFails(setDoc(doc(admin(), "moderationAudit/falsa"), {action: "hide"}));
 });
 
 test("las rutas no declaradas permanecen cerradas", async () => {

@@ -21,12 +21,14 @@ class ReviewService {
   Stream<List<ReviewModel>> receivedBy(String sellerId) => _firestore
       .collection('reviews')
       .where('sellerId', isEqualTo: sellerId)
+      .where('status', isEqualTo: 'published')
       .snapshots()
       .map(_sortedReviews);
 
   Stream<List<ReviewModel>> writtenBy(String reviewerId) => _firestore
       .collection('reviews')
       .where('reviewerId', isEqualTo: reviewerId)
+      .where('status', isEqualTo: 'published')
       .snapshots()
       .map(_sortedReviews);
 
@@ -45,6 +47,40 @@ class ReviewService {
               .get())
           .exists;
 
+  String operationId(String productId, String reviewerId) =>
+      '${productId}_$reviewerId';
+
+  Future<bool> eligibleToReview(String productId, String reviewerId) async {
+    final snapshot = await _firestore
+        .collection('reviewInteractions')
+        .doc(operationId(productId, reviewerId))
+        .get();
+    final data = snapshot.data();
+    return snapshot.exists &&
+        data?['status'] == 'eligible' &&
+        data?['reviewedAt'] == null;
+  }
+
+  Future<void> registerContact({
+    required String productId,
+    required String channel,
+  }) async {
+    await _functions.call('registerProductInteraction', {
+      'productId': productId,
+      'channel': channel,
+    });
+  }
+
+  Future<void> reportReview({
+    required String reviewId,
+    required String reason,
+  }) async {
+    await _functions.call('reportReview', {
+      'reviewId': reviewId,
+      'reason': reason.trim(),
+    });
+  }
+
   Future<void> createReview({
     required ProductModel product,
     required UserModel reviewer,
@@ -61,6 +97,7 @@ class ReviewService {
 
     await _functions.call('createReview', {
       'productId': product.id,
+      'operationId': operationId(product.id, reviewer.uid),
       'rating': rating,
       'comment': comment.trim(),
       'tags': tags,

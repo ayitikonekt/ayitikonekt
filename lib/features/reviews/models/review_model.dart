@@ -12,6 +12,7 @@ class ReviewModel {
   final int rating;
   final String comment;
   final List<String> tags;
+  final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -27,6 +28,7 @@ class ReviewModel {
     required this.rating,
     required this.comment,
     required this.tags,
+    required this.status,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -50,6 +52,7 @@ class ReviewModel {
       rating: (data['rating'] as num?)?.toInt() ?? 0,
       comment: data['comment']?.toString() ?? '',
       tags: List<String>.from(data['tags'] ?? const <String>[]),
+      status: data['status']?.toString() ?? 'published',
       createdAt: readDate(data['createdAt']),
       updatedAt: readDate(data['updatedAt']),
     );
