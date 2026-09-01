@@ -2,8 +2,11 @@ import 'dart:convert';
 
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
+import 'firebase_app_check_config.dart';
 
 class BackendFunctionsService {
   static const _projectId = 'ayitikonekt';
@@ -48,10 +51,17 @@ class BackendFunctionsService {
             'https://$_region-$_projectId.cloudfunctions.net/$functionName',
           );
 
+    String? appCheckToken;
+    if (isFirebaseAppCheckActivated) {
+      appCheckToken = await FirebaseAppCheck.instance.getToken();
+    }
+
     final response = await http.post(
       uri,
       headers: {
         'Authorization': 'Bearer $token',
+        if (appCheckToken != null && appCheckToken.isNotEmpty)
+          'X-Firebase-AppCheck': appCheckToken,
         'Content-Type': 'application/json',
       },
       body: jsonEncode({'data': payload}),

@@ -3,11 +3,19 @@ const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {initializeApp} = require("firebase-admin/app");
 const {getFirestore, FieldValue, Timestamp} = require("firebase-admin/firestore");
+const {
+  MAX_FAVORITE_CHANGES_PER_HOUR,
+  MAX_UNIQUE_VIEWS_PER_HOUR,
+  nextRateLimit,
+  safeCounter,
+  shouldCountProductView,
+} = require("./security");
 
 initializeApp();
 setGlobalOptions({maxInstances: 20});
 
 const db = getFirestore();
+const monitoredCallable = {enforceAppCheck: false};
 
 function authenticatedUid(request) {
   const uid = request.auth?.uid;
@@ -56,7 +64,7 @@ exports.syncMyPublicProfile = onCall(async (request) => {
   return {synced: true};
 });
 
-exports.toggleFavorite = onCall(async (request) => {
+exports.toggleFavorite = onCall(monitoredCallable, async (request) => {
   const uid = authenticatedUid(request);
   const productId = requiredString(request.data?.productId, "productId", 160);
   const add = request.data?.add;
@@ -67,27 +75,43 @@ exports.toggleFavorite = onCall(async (request) => {
   const productRef = db.collection("products").doc(productId);
   const favoriteRef = db.collection("users").doc(uid).collection("favorites").doc(productId);
   const actorRef = db.collection("users").doc(uid);
+  const rateLimitRef = actorRef.collection("securityLimits").doc("favoriteChanges");
 
   return db.runTransaction(async (transaction) => {
-    const [productSnapshot, favoriteSnapshot, actorSnapshot] = await Promise.all([
+    const now = Timestamp.now();
+    const [productSnapshot, favoriteSnapshot, actorSnapshot, rateLimitSnapshot] = await Promise.all([
       transaction.get(productRef),
       transaction.get(favoriteRef),
       transaction.get(actorRef),
+      transaction.get(rateLimitRef),
     ]);
     if (!productSnapshot.exists) {
       throw new HttpsError("not-found", "Product is not available.");
     }
 
+    if (!actorSnapshot.exists) {
+      throw new HttpsError("failed-precondition", "User profile is required.");
+    }
+
     const product = productSnapshot.data();
-    const currentCount = Number(product.favorites || 0);
+    const currentCount = safeCounter(product.favorites, "favorite");
     if (favoriteSnapshot.exists === add) return {favoriteCount: currentCount};
 
-    const nextCount = add ? currentCount + 1 : Math.max(0, currentCount - 1);
+    const rateLimit = nextRateLimit(
+      rateLimitSnapshot,
+      MAX_FAVORITE_CHANGES_PER_HOUR,
+      now,
+    );
+    const nextCount = add ? currentCount + 1 : currentCount - 1;
+    if (nextCount < 0) {
+      throw new HttpsError("failed-precondition", "Favorite counter is inconsistent.");
+    }
     if (add) {
       transaction.set(favoriteRef, {productId, createdAt: FieldValue.serverTimestamp()});
     } else {
       transaction.delete(favoriteRef);
     }
+    transaction.set(rateLimitRef, rateLimit);
     transaction.update(productRef, {favorites: nextCount});
 
     const sellerId = String(product.sellerId || "");
@@ -111,25 +135,41 @@ exports.toggleFavorite = onCall(async (request) => {
   });
 });
 
-exports.recordProductView = onCall(async (request) => {
+exports.recordProductView = onCall(monitoredCallable, async (request) => {
   const uid = authenticatedUid(request);
   const productId = requiredString(request.data?.productId, "productId", 160);
   const productRef = db.collection("products").doc(productId);
   const eventRef = productRef.collection("viewEvents").doc(uid);
+  const actorRef = db.collection("users").doc(uid);
+  const rateLimitRef = actorRef.collection("securityLimits").doc("productViews");
 
   return db.runTransaction(async (transaction) => {
-    const [productSnapshot, eventSnapshot] = await Promise.all([
-      transaction.get(productRef), transaction.get(eventRef),
+    const now = Timestamp.now();
+    const [productSnapshot, eventSnapshot, actorSnapshot, rateLimitSnapshot] = await Promise.all([
+      transaction.get(productRef),
+      transaction.get(eventRef),
+      transaction.get(actorRef),
+      transaction.get(rateLimitRef),
     ]);
     if (!productSnapshot.exists) throw new HttpsError("not-found", "Product not found.");
-    const currentCount = Number(productSnapshot.data().views || 0);
-    const lastViewedAt = eventSnapshot.data()?.viewedAt;
-    if (lastViewedAt instanceof Timestamp && Date.now() - lastViewedAt.toMillis() < 3600000) {
-      return {viewCount: currentCount};
+    if (!actorSnapshot.exists) {
+      throw new HttpsError("failed-precondition", "User profile is required.");
     }
-    transaction.set(eventRef, {viewerId: uid, viewedAt: FieldValue.serverTimestamp()});
+    const product = productSnapshot.data();
+    const currentCount = safeCounter(product.views, "view");
+    const lastViewedAt = eventSnapshot.data()?.viewedAt;
+    if (!shouldCountProductView(product, uid, lastViewedAt, now)) {
+      return {viewCount: currentCount, counted: false};
+    }
+    const rateLimit = nextRateLimit(
+      rateLimitSnapshot,
+      MAX_UNIQUE_VIEWS_PER_HOUR,
+      now,
+    );
+    transaction.set(rateLimitRef, rateLimit);
+    transaction.set(eventRef, {viewerId: uid, viewedAt: now});
     transaction.update(productRef, {views: currentCount + 1});
-    return {viewCount: currentCount + 1};
+    return {viewCount: currentCount + 1, counted: true};
   });
 });
 

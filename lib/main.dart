@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
 import 'core/firebase/firebase_emulator_config.dart';
+import 'core/firebase/firebase_app_check_config.dart';
 
 import 'features/marketplace/providers/marketplace_provider.dart';
 import 'features/splash/presentation/splash_screen.dart';
@@ -17,6 +18,7 @@ Future<void> main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await connectToFirebaseEmulators();
+  await activateFirebaseAppCheck();
 
   runApp(const AyitiKonektApp());
 }
