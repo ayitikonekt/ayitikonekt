@@ -74,14 +74,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text(context.tr('reviewPublished'))));
     setState(
-      () => _sellerFuture = UserService().getUser(widget.product.sellerId),
+      () => _sellerFuture = UserService().getPublicUser(widget.product.sellerId),
     );
   }
 
   @override
   void initState() {
     super.initState();
-    _sellerFuture = UserService().getUser(widget.product.sellerId);
+    _sellerFuture = UserService().getPublicUser(widget.product.sellerId);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final currentUserId = context.read<AuthProvider>().user?.uid;
@@ -735,10 +735,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             final sellerName = seller == null
                                 ? product.sellerName
                                 : '${seller.name} ${seller.lastName}'.trim();
-                            final sellerEmail =
-                                seller?.email ?? product.sellerEmail;
-                            final sellerPhone =
-                                seller?.phone ?? product.sellerPhone;
+                            final sellerEmail = seller?.email.isNotEmpty == true
+                                ? seller!.email
+                                : product.sellerEmail;
+                            final sellerPhone = seller?.phone.isNotEmpty == true
+                                ? seller!.phone
+                                : product.sellerPhone;
                             final sellerPhoto =
                                 seller?.photo ?? product.sellerPhoto;
 

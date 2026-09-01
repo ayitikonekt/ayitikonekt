@@ -1,5 +1,6 @@
 const {setGlobalOptions} = require("firebase-functions/v2");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
+const {onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {initializeApp} = require("firebase-admin/app");
 const {getFirestore, FieldValue, Timestamp} = require("firebase-admin/firestore");
 
@@ -20,6 +21,40 @@ function requiredString(value, field, maxLength) {
   }
   return value.trim();
 }
+
+function publicProfile(uid, data) {
+  return {
+    uid,
+    name: String(data.name || ""),
+    lastName: String(data.lastName || ""),
+    country: String(data.country || ""),
+    city: String(data.city || ""),
+    photo: String(data.photo || ""),
+    verified: data.verified === true,
+    reputation: Number(data.reputation || 5),
+    reviewCount: Number(data.reviewCount || 0),
+  };
+}
+
+exports.syncPublicProfileOnUserWrite = onDocumentWritten("users/{uid}", async (event) => {
+  const uid = event.params.uid;
+  const profileRef = db.collection("publicProfiles").doc(uid);
+  if (!event.data.after.exists) {
+    await profileRef.delete();
+    return;
+  }
+  await profileRef.set(publicProfile(uid, event.data.after.data()));
+});
+
+// Migra de forma segura cuentas creadas antes de publicProfiles.
+exports.syncMyPublicProfile = onCall(async (request) => {
+  const uid = authenticatedUid(request);
+  const userSnapshot = await db.collection("users").doc(uid).get();
+  if (!userSnapshot.exists) throw new HttpsError("not-found", "Profile not found.");
+  await db.collection("publicProfiles").doc(uid)
+    .set(publicProfile(uid, userSnapshot.data()));
+  return {synced: true};
+});
 
 exports.toggleFavorite = onCall(async (request) => {
   const uid = authenticatedUid(request);
@@ -154,6 +189,11 @@ exports.createReview = onCall(async (request) => {
       reviewCount: newCount,
       reviewRatingTotal: newTotal,
     });
+    transaction.set(db.collection("publicProfiles").doc(sellerId), {
+      ...publicProfile(sellerId, seller),
+      reputation: newTotal / newCount,
+      reviewCount: newCount,
+    }, {merge: true});
   });
   return {created: true};
 });

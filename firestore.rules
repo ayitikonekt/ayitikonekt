@@ -15,7 +15,7 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read: if signedIn();
+      allow read: if owner(uid) || admin();
       allow create: if owner(uid)
         && request.resource.data.uid == uid
         && request.resource.data.reputation == 5;
@@ -39,6 +39,13 @@ service cloud.firestore {
           && request.resource.data.read is bool;
         allow create, delete: if false;
       }
+    }
+
+    // Perfil seguro para mostrar a otros usuarios. Se mantiene desde el
+    // backend; el cliente no puede falsificar reputación ni verificación.
+    match /publicProfiles/{uid} {
+      allow read: if true;
+      allow write: if false;
     }
 
     match /products/{productId} {

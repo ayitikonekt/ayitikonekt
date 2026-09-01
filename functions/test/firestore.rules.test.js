@@ -40,6 +40,17 @@ async function seed() {
       phone: "222",
       reputation: 5,
     });
+    await setDoc(doc(db, "publicProfiles/bob"), {
+      uid: "bob",
+      name: "Bob",
+      lastName: "B",
+      country: "Chile",
+      city: "Santiago",
+      photo: "",
+      verified: false,
+      reputation: 5,
+      reviewCount: 0,
+    });
     await setDoc(doc(db, "products/product-bob"), {
       id: "product-bob",
       sellerId: "bob",
@@ -107,6 +118,22 @@ test("Alice puede editar campos permitidos de su perfil", async () => {
 
 test("Alice no puede editar el perfil de Bob", async () => {
   await assertFails(updateDoc(doc(user("alice"), "users/bob"), {name: "Manipulado"}));
+});
+
+test("el perfil privado de Bob no puede ser leído por Alice", async () => {
+  await assertFails(getDoc(doc(user("alice"), "users/bob")));
+  await assertSucceeds(getDoc(doc(user("bob"), "users/bob")));
+  await assertSucceeds(getDoc(doc(admin(), "users/bob")));
+});
+
+test("el perfil público es visible pero nadie puede falsificarlo directamente", async () => {
+  await assertSucceeds(getDoc(doc(anonymous(), "publicProfiles/bob")));
+  await assertSucceeds(getDoc(doc(user("alice"), "publicProfiles/bob")));
+  await assertFails(updateDoc(doc(user("bob"), "publicProfiles/bob"), {reputation: 100}));
+  await assertFails(setDoc(doc(user("alice"), "publicProfiles/alice"), {
+    uid: "alice",
+    reputation: 100,
+  }));
 });
 
 test("Alice no puede elevar su reputación ni darse rol administrativo", async () => {
