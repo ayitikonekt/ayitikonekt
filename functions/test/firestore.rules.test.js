@@ -12,6 +12,7 @@ const {
   deleteDoc,
   doc,
   getDoc,
+  serverTimestamp,
   setDoc,
   updateDoc,
 } = require("firebase/firestore");
@@ -22,6 +23,35 @@ let env;
 const user = (uid) => env.authenticatedContext(uid).firestore();
 const admin = () => env.authenticatedContext("admin", {admin: true}).firestore();
 const anonymous = () => env.unauthenticatedContext().firestore();
+
+function validProduct(id, sellerId, overrides = {}) {
+  return {
+    id,
+    title: "Producto válido",
+    description: "Descripción válida",
+    price: 10,
+    category: "Otros",
+    city: "Santiago",
+    country: "Chile",
+    address: "",
+    latitude: 0,
+    longitude: 0,
+    images: [],
+    sellerId,
+    sellerName: "Vendedor",
+    sellerPhoto: "",
+    sellerPhone: "",
+    sellerEmail: "",
+    condition: "Usado",
+    isFeatured: false,
+    isSold: false,
+    views: 0,
+    favorites: 0,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    ...overrides,
+  };
+}
 
 async function seed() {
   await env.withSecurityRulesDisabled(async (context) => {
@@ -60,7 +90,15 @@ async function seed() {
       category: "Otros",
       city: "Santiago",
       country: "Chile",
+      address: "",
+      latitude: 0,
+      longitude: 0,
       images: [],
+      sellerName: "Bob",
+      sellerPhoto: "",
+      sellerPhone: "",
+      sellerEmail: "",
+      condition: "Usado",
       views: 0,
       favorites: 0,
       isFeatured: false,
@@ -142,24 +180,17 @@ test("Alice no puede elevar su reputación ni darse rol administrativo", async (
 });
 
 test("Alice puede crear su producto con contadores seguros", async () => {
-  await assertSucceeds(setDoc(doc(user("alice"), "products/product-alice"), {
-    id: "product-alice",
-    sellerId: "alice",
-    title: "Producto",
-    views: 0,
-    favorites: 0,
-    isFeatured: false,
-  }));
+  await assertSucceeds(setDoc(
+    doc(user("alice"), "products/product-alice"),
+    validProduct("product-alice", "alice"),
+  ));
 });
 
 test("Alice no puede crear un producto en nombre de Bob", async () => {
-  await assertFails(setDoc(doc(user("alice"), "products/falso"), {
-    id: "falso",
-    sellerId: "bob",
-    views: 0,
-    favorites: 0,
-    isFeatured: false,
-  }));
+  await assertFails(setDoc(
+    doc(user("alice"), "products/falso"),
+    validProduct("falso", "bob"),
+  ));
 });
 
 test("Alice no puede editar ni eliminar el producto de Bob", async () => {
@@ -168,10 +199,73 @@ test("Alice no puede editar ni eliminar el producto de Bob", async () => {
 });
 
 test("Bob puede editar su producto pero no sus contadores ni propietario", async () => {
-  await assertSucceeds(updateDoc(doc(user("bob"), "products/product-bob"), {title: "Título correcto"}));
-  await assertFails(updateDoc(doc(user("bob"), "products/product-bob"), {views: 9999}));
-  await assertFails(updateDoc(doc(user("bob"), "products/product-bob"), {favorites: 9999}));
-  await assertFails(updateDoc(doc(user("bob"), "products/product-bob"), {sellerId: "alice"}));
+  await assertSucceeds(updateDoc(doc(user("bob"), "products/product-bob"), {
+    title: "Título correcto",
+    updatedAt: serverTimestamp(),
+  }));
+  await assertFails(updateDoc(doc(user("bob"), "products/product-bob"), {
+    views: 9999,
+    updatedAt: serverTimestamp(),
+  }));
+  await assertFails(updateDoc(doc(user("bob"), "products/product-bob"), {
+    favorites: 9999,
+    updatedAt: serverTimestamp(),
+  }));
+  await assertFails(updateDoc(doc(user("bob"), "products/product-bob"), {
+    sellerId: "alice",
+    updatedAt: serverTimestamp(),
+  }));
+});
+
+test("un producto no admite campos administrativos ocultos", async () => {
+  await assertFails(setDoc(
+    doc(user("alice"), "products/admin-field"),
+    validProduct("admin-field", "alice", {adminApproved: true}),
+  ));
+});
+
+test("precio y longitudes inválidas son rechazados", async () => {
+  await assertFails(setDoc(
+    doc(user("alice"), "products/negative-price"),
+    validProduct("negative-price", "alice", {price: -1}),
+  ));
+  await assertFails(setDoc(
+    doc(user("alice"), "products/long-title"),
+    validProduct("long-title", "alice", {title: "x".repeat(121)}),
+  ));
+  await assertFails(setDoc(
+    doc(user("alice"), "products/string-price"),
+    validProduct("string-price", "alice", {price: "10"}),
+  ));
+});
+
+test("solo se permiten hasta ocho imágenes válidas", async () => {
+  await assertSucceeds(setDoc(
+    doc(user("alice"), "products/eight-images"),
+    validProduct("eight-images", "alice", {images: Array(8).fill("https://example.com/image.jpg")}),
+  ));
+  await assertFails(setDoc(
+    doc(user("alice"), "products/nine-images"),
+    validProduct("nine-images", "alice", {images: Array(9).fill("https://example.com/image.jpg")}),
+  ));
+  await assertFails(setDoc(
+    doc(user("alice"), "products/non-string-image"),
+    validProduct("non-string-image", "alice", {images: [123]}),
+  ));
+});
+
+test("las fechas de productos deben ser generadas por el servidor", async () => {
+  await assertFails(setDoc(
+    doc(user("alice"), "products/fake-date"),
+    validProduct("fake-date", "alice", {
+      createdAt: "2026-08-31T12:00:00.000Z",
+      updatedAt: "2026-08-31T12:00:00.000Z",
+    }),
+  ));
+  await assertFails(updateDoc(doc(user("bob"), "products/product-bob"), {
+    title: "Fecha manipulada",
+    updatedAt: "2026-08-31T12:00:00.000Z",
+  }));
 });
 
 test("favoritos y notificaciones son privados y no admiten creación directa", async () => {

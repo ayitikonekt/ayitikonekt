@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ProductModel {
   final String id;
 
@@ -116,6 +118,12 @@ class ProductModel {
   }
 
   factory ProductModel.fromMap(Map<String, dynamic> map) {
+    DateTime readDate(dynamic value) {
+      if (value is Timestamp) return value.toDate();
+      if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+      return DateTime.now();
+    }
+
     return ProductModel(
       id: map['id'] ?? '',
       title: map['title'] ?? '',
@@ -138,12 +146,8 @@ class ProductModel {
       isSold: map['isSold'] ?? false,
       views: map['views'] ?? 0,
       favorites: map['favorites'] ?? 0,
-      createdAt: map['createdAt'] != null
-          ? DateTime.parse(map['createdAt'])
-          : DateTime.now(),
-      updatedAt: map['updatedAt'] != null
-          ? DateTime.parse(map['updatedAt'])
-          : DateTime.now(),
+      createdAt: readDate(map['createdAt']),
+      updatedAt: readDate(map['updatedAt']),
     );
   }
 

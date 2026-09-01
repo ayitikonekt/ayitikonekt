@@ -14,6 +14,63 @@ service cloud.firestore {
       return signedIn() && request.auth.token.admin == true;
     }
 
+    function validImageList(images) {
+      return images is list
+        && images.size() <= 8
+        && (images.size() < 1 || (images[0] is string && images[0].size() <= 2048))
+        && (images.size() < 2 || (images[1] is string && images[1].size() <= 2048))
+        && (images.size() < 3 || (images[2] is string && images[2].size() <= 2048))
+        && (images.size() < 4 || (images[3] is string && images[3].size() <= 2048))
+        && (images.size() < 5 || (images[4] is string && images[4].size() <= 2048))
+        && (images.size() < 6 || (images[5] is string && images[5].size() <= 2048))
+        && (images.size() < 7 || (images[6] is string && images[6].size() <= 2048))
+        && (images.size() < 8 || (images[7] is string && images[7].size() <= 2048));
+    }
+
+    function validStoredDate(value) {
+      return value is timestamp
+        || (value is string && value.size() >= 20 && value.size() <= 40);
+    }
+
+    function validProduct(data, productId) {
+      return data.keys().hasAll([
+          'id', 'title', 'description', 'price', 'category', 'city', 'country',
+          'address', 'latitude', 'longitude', 'images', 'sellerId',
+          'sellerName', 'sellerPhoto', 'sellerPhone', 'sellerEmail',
+          'condition', 'isFeatured', 'isSold', 'views', 'favorites',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'title', 'description', 'price', 'category', 'city', 'country',
+          'address', 'latitude', 'longitude', 'images', 'sellerId',
+          'sellerName', 'sellerPhoto', 'sellerPhone', 'sellerEmail',
+          'condition', 'isFeatured', 'isSold', 'views', 'favorites',
+          'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id == productId && data.id.size() <= 160
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 120
+        && data.description is string && data.description.size() >= 1
+        && data.description.size() <= 3000
+        && data.price is number && data.price >= 0 && data.price <= 1000000000
+        && data.category is string && data.category.size() >= 1 && data.category.size() <= 60
+        && data.city is string && data.city.size() <= 120
+        && data.country is string && data.country.size() >= 2 && data.country.size() <= 80
+        && data.address is string && data.address.size() <= 300
+        && data.latitude is number && data.latitude >= -90 && data.latitude <= 90
+        && data.longitude is number && data.longitude >= -180 && data.longitude <= 180
+        && validImageList(data.images)
+        && data.sellerId is string && data.sellerId.size() >= 1 && data.sellerId.size() <= 128
+        && data.sellerName is string && data.sellerName.size() <= 160
+        && data.sellerPhoto is string && data.sellerPhoto.size() <= 2048
+        && data.sellerPhone is string && data.sellerPhone.size() <= 40
+        && data.sellerEmail is string && data.sellerEmail.size() <= 254
+        && data.condition is string && data.condition.size() >= 1 && data.condition.size() <= 40
+        && data.isFeatured is bool && data.isSold is bool
+        && data.views is int && data.views >= 0
+        && data.favorites is int && data.favorites >= 0
+        && validStoredDate(data.createdAt) && validStoredDate(data.updatedAt);
+    }
+
     match /users/{uid} {
       allow read: if owner(uid) || admin();
       allow create: if owner(uid)
@@ -51,14 +108,25 @@ service cloud.firestore {
     match /products/{productId} {
       allow read: if true;
       allow create: if signedIn()
+        && validProduct(request.resource.data, productId)
         && request.resource.data.id == productId
         && request.resource.data.sellerId == request.auth.uid
         && request.resource.data.views == 0
         && request.resource.data.favorites == 0
-        && request.resource.data.isFeatured == false;
+        && request.resource.data.isFeatured == false
+        && request.resource.data.isSold == false
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
       allow update: if signedIn()
         && resource.data.sellerId == request.auth.uid
+        && validProduct(request.resource.data, productId)
         && request.resource.data.sellerId == resource.data.sellerId
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedAt == request.time
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'title', 'description', 'price', 'category', 'city', 'country',
           'address', 'latitude', 'longitude', 'images', 'condition',

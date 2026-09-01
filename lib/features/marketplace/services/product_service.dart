@@ -19,10 +19,13 @@ class ProductService implements ProductRepository {
   /// Crear producto
   @override
   Future<void> createProduct(ProductModel product) async {
+    final data = product.toMap()
+      ..['createdAt'] = FieldValue.serverTimestamp()
+      ..['updatedAt'] = FieldValue.serverTimestamp();
     await _firestore
         .collection('products')
         .doc(product.id)
-        .set(product.toMap());
+        .set(data);
   }
 
   /// Obtener productos (consulta única)
@@ -58,10 +61,12 @@ class ProductService implements ProductRepository {
   /// Actualizar producto
   @override
   Future<void> updateProduct(ProductModel product) async {
+    final data = product.toMap()
+      ..['updatedAt'] = FieldValue.serverTimestamp();
     await _firestore
         .collection('products')
         .doc(product.id)
-        .update(product.toMap());
+        .update(data);
   }
 
   /// Incrementa de forma atómica para no perder vistas simultáneas.
