@@ -31,7 +31,10 @@ class ProductService implements ProductRepository {
     final snapshot = await _firestore
         .collection('products')
         .orderBy('createdAt', descending: true)
-        .get();
+        // El catálogo debe reflejar el estado real del servidor. Evitamos que
+        // macOS, Windows o iOS muestren publicaciones antiguas conservadas en
+        // sus cachés locales.
+        .get(const GetOptions(source: Source.server));
 
     return snapshot.docs
         .map((doc) => ProductModel.fromMap(doc.data()))
