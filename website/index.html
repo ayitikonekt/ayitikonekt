@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AyitiKonekt | N ap konekte kominote nou an</title>
+  <meta
+    name="description"
+    content="AyitiKonekt se yon platfòm ki konekte kominote ayisyen an nan Chili atravè pwodwi, sèvis ak opòtinite."
+  >
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+  <header>
+    <nav>
+      <a class="logo-link" href="#inicio" aria-label="AyitiKonekt - Akèy">
+        <img
+          class="header-logo"
+          src="assets/images/ayitikonekt-logo.png"
+          alt="AyitiKonekt"
+        >
+      </a>
+
+      <div class="nav-actions">
+        <a href="#inicio" data-i18n="navHome">Akèy</a>
+        <a href="#nosotros" data-i18n="navAbout">Konsènan nou</a>
+        <a href="#servicios" data-i18n="navServices">Sèvis</a>
+        <a href="#contacto" data-i18n="navContact">Kontak</a>
+        <div class="language-selector">
+          <button
+            id="language-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="language-menu"
+            data-i18n="languageButton"
+          >
+            Lang
+          </button>
+          <div id="language-menu" class="language-menu" hidden>
+            <button type="button" data-language="ht">Kreyòl Ayisyen</button>
+            <button type="button" data-language="es">Español</button>
+            <button type="button" data-language="en">English</button>
+            <button type="button" data-language="fr">Français</button>
+            <button type="button" data-language="pt">Português</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section id="inicio">
+      <h1 data-i18n="heroTitle">Nou konekte kominote nou an</h1>
+      <p data-i18n="heroDescription">
+        Achte, vann, ofri sèvis epi dekouvri opòtinite nan kominotew la.
+      </p>
+      <p data-i18n="heroAvailability">Aplikasyon pou Android ak iPhone ap vini byento.</p>
+    </section>
+
+    <section id="nosotros">
+      <h2 data-i18n="aboutTitle">Ki sa AyitiKonekt ye?</h2>
+      <p data-i18n="aboutDescription">
+        AyitiKonekt kreye yon espas pou koneksyon, konfyans ak opòtinite
+        pou kominote ayisyèn nan tout kote.
+      </p>
+    </section>
+
+    <section id="servicios">
+      <h2 data-i18n="servicesTitle">Tout bagay nan yon sèl kote</h2>
+      <article>
+        <h3 data-i18n="productsTitle">Pwodwi</h3>
+        <p data-i18n="productsDescription">Jwenn epi pibliye pwodwi nan kominote a.</p>
+      </article>
+      <article>
+        <h3 data-i18n="serviceCardTitle">Sèvis</h3>
+        <p data-i18n="serviceCardDescription">Jwenn moun ki ofri sèvis ou bezwen yo.</p>
+      </article>
+      <article>
+        <h3 data-i18n="opportunitiesTitle">Opòtinite</h3>
+        <p data-i18n="opportunitiesDescription">Konekte ak nouvo opòtinite nan kominote a.</p>
+      </article>
+    </section>
+
+    <section id="contacto">
+      <h2 data-i18n="contactTitle">Kontak</h2>
+      <p>
+        <span data-i18n="emailLabel">Imèl:</span>
+        <a href="mailto:contactos@ayitikonekt.com">contactos@ayitikonekt.com</a>
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <p data-i18n="footer">© 2026 AyitiKonekt. Tout dwa rezève.</p>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
