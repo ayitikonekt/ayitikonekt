@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Katalòg pwodwi | AyitiKonekt</title>
+  <meta name="description" content="Dekouvri kategori pwodwi ki disponib nan AyitiKonekt.">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="catalog-page" data-page-title="productsPageTitle">
+  <header><nav>
+    <a class="logo-link" href="index.html" aria-label="AyitiKonekt"><img class="header-logo" src="assets/images/ayitikonekt-logo.png" alt="AyitiKonekt"></a>
+    <div class="nav-actions">
+      <a href="index.html" data-i18n="navHome">Akèy</a>
+      <a href="index.html#nosotros" data-i18n="navAbout">Konsènan nou</a>
+      <a href="index.html#servicios" data-i18n="navServices">Sèvis</a>
+      <a href="index.html#contacto" data-i18n="navContact">Kontak</a>
+      <div class="language-selector">
+        <button id="language-toggle" type="button" aria-expanded="false" aria-controls="language-menu" data-i18n="languageButton">Lang</button>
+        <div id="language-menu" class="language-menu" hidden>
+          <button type="button" data-language="ht">Kreyòl Ayisyen</button>
+          <button type="button" data-language="es">Español</button>
+          <button type="button" data-language="en">English</button>
+          <button type="button" data-language="fr">Français</button>
+          <button type="button" data-language="pt">Português</button>
+        </div>
+      </div>
+    </div>
+  </nav></header>
+  <main>
+    <section class="catalog-heading">
+      <a class="back-link" href="index.html#servicios" data-i18n="backHome">Retounen nan akèy</a>
+      <h1 data-i18n="productsPageTitle">Katalòg pwodwi</h1>
+      <p data-i18n="productsPageDescription">Dekouvri kategori pwodwi ki disponib nan AyitiKonekt.</p>
+    </section>
+    <ul class="category-grid" data-catalog="products" aria-live="polite"></ul>
+  </main>
+  <footer><p data-i18n="footer">© 2026 AyitiKonekt. Tout dwa rezève.</p></footer>
+  <script src="js/main.js"></script>
+</body>
+</html>
+

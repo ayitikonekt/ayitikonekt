@@ -14,10 +14,13 @@ const translations = {
     servicesTitle: "Tout bagay nan yon sèl kote",
     productsTitle: "Pwodwi",
     productsDescription: "Jwenn epi pibliye pwodwi nan kominote a.",
+    productsAction: "Gade pwodwi yo",
     serviceCardTitle: "Sèvis",
     serviceCardDescription: "Jwenn moun ki ofri sèvis ou bezwen yo.",
+    servicesAction: "Gade sèvis yo",
     opportunitiesTitle: "Opòtinite",
     opportunitiesDescription: "Konekte ak nouvo opòtinite nan kominote a.",
+    opportunitiesAction: "Gade opòtinite yo",
     contactTitle: "Kontak",
     emailLabel: "Imèl:",
     footer: "© 2026 AyitiKonekt. Tout dwa rezève.",
@@ -37,10 +40,13 @@ const translations = {
     servicesTitle: "Todo en un mismo lugar",
     productsTitle: "Productos",
     productsDescription: "Encuentra y publica productos dentro de la comunidad.",
+    productsAction: "Ver productos",
     serviceCardTitle: "Servicios",
     serviceCardDescription: "Encuentra personas que ofrecen los servicios que necesitas.",
+    servicesAction: "Ver servicios",
     opportunitiesTitle: "Oportunidades",
     opportunitiesDescription: "Conecta con nuevas oportunidades dentro de la comunidad.",
+    opportunitiesAction: "Ver oportunidades",
     contactTitle: "Contacto",
     emailLabel: "Correo:",
     footer: "© 2026 AyitiKonekt. Todos los derechos reservados.",
@@ -60,10 +66,13 @@ const translations = {
     servicesTitle: "Everything in one place",
     productsTitle: "Products",
     productsDescription: "Find and publish products within the community.",
+    productsAction: "View products",
     serviceCardTitle: "Services",
     serviceCardDescription: "Find people who offer the services you need.",
+    servicesAction: "View services",
     opportunitiesTitle: "Opportunities",
     opportunitiesDescription: "Connect with new opportunities within the community.",
+    opportunitiesAction: "View opportunities",
     contactTitle: "Contact",
     emailLabel: "Email:",
     footer: "© 2026 AyitiKonekt. All rights reserved.",
@@ -83,10 +92,13 @@ const translations = {
     servicesTitle: "Tout au même endroit",
     productsTitle: "Produits",
     productsDescription: "Trouvez et publiez des produits au sein de la communauté.",
+    productsAction: "Voir les produits",
     serviceCardTitle: "Services",
     serviceCardDescription: "Trouvez des personnes qui offrent les services dont vous avez besoin.",
+    servicesAction: "Voir les services",
     opportunitiesTitle: "Opportunités",
     opportunitiesDescription: "Découvrez de nouvelles opportunités au sein de la communauté.",
+    opportunitiesAction: "Voir les opportunités",
     contactTitle: "Contact",
     emailLabel: "E-mail :",
     footer: "© 2026 AyitiKonekt. Tous droits réservés.",
@@ -106,13 +118,42 @@ const translations = {
     servicesTitle: "Tudo em um só lugar",
     productsTitle: "Produtos",
     productsDescription: "Encontre e publique produtos dentro da comunidade.",
+    productsAction: "Ver produtos",
     serviceCardTitle: "Serviços",
     serviceCardDescription: "Encontre pessoas que oferecem os serviços de que você precisa.",
+    servicesAction: "Ver serviços",
     opportunitiesTitle: "Oportunidades",
     opportunitiesDescription: "Conecte-se a novas oportunidades dentro da comunidade.",
+    opportunitiesAction: "Ver oportunidades",
     contactTitle: "Contato",
     emailLabel: "E-mail:",
     footer: "© 2026 AyitiKonekt. Todos os direitos reservados.",
+  },
+};
+
+const pageTranslations = {
+  ht: ["Retounen nan akèy", "Katalòg pwodwi", "Dekouvri kategori pwodwi ki disponib nan AyitiKonekt.", "Katalòg sèvis", "Jwenn espesyalite ak sèvis kominote a kapab ofri.", "Opòtinite", "Resous ofisyèl pou fòmasyon, enfòmasyon enpòtan ak rechèch travay nan Chili.", "Lyen sa yo louvri sit ofisyèl ki pa fè pati AyitiKonekt.", "Kou gratis", "Dekouvri kou sou entènèt SENCE pou devlope konpetans travay ou.", "Enfòmasyon esansyèl", "Chèche sèvis, avantaj ak demach Leta Chili nan ChileAtiende.", "Chèche travay", "Konsilte òf travay ki disponib nan Bous Nasyonal Travay la.", "Vizite sit ofisyèl ↗"],
+  es: ["Volver al inicio", "Catálogo de productos", "Descubre las categorías de productos disponibles en AyitiKonekt.", "Catálogo de servicios", "Encuentra las especialidades y servicios que puede ofrecer la comunidad.", "Oportunidades", "Recursos oficiales para capacitación, información esencial y búsqueda de empleo en Chile.", "Estos enlaces abren sitios oficiales externos a AyitiKonekt.", "Cursos gratuitos", "Descubre los cursos en línea de SENCE para desarrollar competencias laborales.", "Información esencial", "Consulta servicios, beneficios y trámites del Estado de Chile en ChileAtiende.", "Buscar empleo", "Consulta ofertas laborales disponibles en la Bolsa Nacional de Empleo.", "Visitar sitio oficial ↗"],
+  en: ["Back to home", "Product catalog", "Explore the product categories available on AyitiKonekt.", "Service catalog", "Find the skills and services the community can offer.", "Opportunities", "Official resources for training, essential information and job searching in Chile.", "These links open official websites outside AyitiKonekt.", "Free courses", "Explore SENCE online courses to develop job skills.", "Essential information", "Find Chilean government services, benefits and procedures on ChileAtiende.", "Find a job", "Browse job openings on Chile's National Employment Exchange.", "Visit official website ↗"],
+  fr: ["Retour à l’accueil", "Catalogue de produits", "Découvrez les catégories de produits disponibles sur AyitiKonekt.", "Catalogue de services", "Trouvez les spécialités et services proposés par la communauté.", "Opportunités", "Ressources officielles pour la formation, les informations essentielles et la recherche d’emploi au Chili.", "Ces liens ouvrent des sites officiels externes à AyitiKonekt.", "Cours gratuits", "Découvrez les cours en ligne du SENCE pour développer vos compétences professionnelles.", "Informations essentielles", "Consultez les services, prestations et démarches de l’État chilien sur ChileAtiende.", "Rechercher un emploi", "Consultez les offres de la Bourse nationale de l’emploi du Chili.", "Visiter le site officiel ↗"],
+  pt: ["Voltar ao início", "Catálogo de produtos", "Conheça as categorias de produtos disponíveis na AyitiKonekt.", "Catálogo de serviços", "Encontre especialidades e serviços oferecidos pela comunidade.", "Oportunidades", "Recursos oficiais para capacitação, informações essenciais e busca de emprego no Chile.", "Estes links abrem sites oficiais externos à AyitiKonekt.", "Cursos gratuitos", "Conheça os cursos on-line do SENCE para desenvolver competências profissionais.", "Informações essenciais", "Consulte serviços, benefícios e procedimentos do Estado chileno no ChileAtiende.", "Buscar emprego", "Consulte vagas disponíveis na Bolsa Nacional de Emprego do Chile.", "Visitar site oficial ↗"],
+};
+
+const pageKeys = ["backHome", "productsPageTitle", "productsPageDescription", "servicesPageTitle", "servicesPageDescription", "opportunitiesPageTitle", "opportunitiesPageDescription", "externalNotice", "freeCourses", "freeCoursesDescription", "essentialInfo", "essentialInfoDescription", "jobSearch", "jobSearchDescription", "visitOfficialSite"];
+const catalogItems = {
+  products: {
+    ht: ["Elektwonik", "Telefòn selilè", "Òdinatè", "Machin", "Lojman", "Rad", "Soulye", "Mèb", "Aparèy elektwomenaje", "Bèt kay", "Lòt"],
+    es: ["Electrónica", "Celulares", "Computadores", "Vehículos", "Vivienda", "Ropa", "Zapatos", "Muebles", "Electrodomésticos", "Mascotas", "Otros"],
+    en: ["Electronics", "Mobile phones", "Computers", "Vehicles", "Housing", "Clothing", "Shoes", "Furniture", "Home appliances", "Pets", "Other"],
+    fr: ["Électronique", "Téléphones portables", "Ordinateurs", "Véhicules", "Logement", "Vêtements", "Chaussures", "Meubles", "Électroménager", "Animaux", "Autres"],
+    pt: ["Eletrônicos", "Celulares", "Computadores", "Veículos", "Moradia", "Roupas", "Calçados", "Móveis", "Eletrodomésticos", "Animais", "Outros"],
+  },
+  services: {
+    ht: ["Plonbri", "Elektrisite", "Konstriksyon", "Penti", "Netwayaj", "Jadinaj", "Bote", "Reparasyon", "Kou", "Transpò", "Teknoloji", "Lòt"],
+    es: ["Gasfitería", "Electricidad", "Construcción", "Pintura", "Limpieza", "Jardinería", "Belleza", "Reparaciones", "Clases", "Transporte", "Tecnología", "Otros"],
+    en: ["Plumbing", "Electrical work", "Construction", "Painting", "Cleaning", "Gardening", "Beauty", "Repairs", "Classes", "Transport", "Technology", "Other"],
+    fr: ["Plomberie", "Électricité", "Construction", "Peinture", "Nettoyage", "Jardinage", "Beauté", "Réparations", "Cours", "Transport", "Technologie", "Autres"],
+    pt: ["Encanamento", "Eletricidade", "Construção", "Pintura", "Limpeza", "Jardinagem", "Beleza", "Reparos", "Aulas", "Transporte", "Tecnologia", "Outros"],
   },
 };
 
@@ -126,15 +167,27 @@ function closeLanguageMenu() {
 }
 
 function applyLanguage(language) {
-  const copy = translations[language];
+  const pageCopy = Object.fromEntries(pageKeys.map((key, index) => [key, pageTranslations[language][index]]));
+  const copy = { ...translations[language], ...pageCopy };
   document.documentElement.lang = language;
-  document.title = copy.pageTitle;
+  const pageTitleKey = document.body.dataset.pageTitle;
+  document.title = pageTitleKey ? `${copy[pageTitleKey]} | AyitiKonekt` : copy.pageTitle;
   document.querySelectorAll("[data-i18n]").forEach((element) => {
-    element.textContent = copy[element.dataset.i18n];
+    const value = copy[element.dataset.i18n];
+    if (value) element.textContent = value;
+  });
+  document.querySelectorAll("[data-catalog]").forEach((catalog) => {
+    const items = catalogItems[catalog.dataset.catalog]?.[language] ?? [];
+    catalog.replaceChildren(...items.map((item) => {
+      const listItem = document.createElement("li");
+      listItem.textContent = item;
+      return listItem;
+    }));
   });
   languageOptions.forEach((option) => {
     option.setAttribute("aria-current", String(option.dataset.language === language));
   });
+  localStorage.setItem("ayitikonekt-language", language);
   closeLanguageMenu();
 }
 
@@ -159,4 +212,5 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-applyLanguage("ht");
+const savedLanguage = localStorage.getItem("ayitikonekt-language");
+applyLanguage(translations[savedLanguage] ? savedLanguage : "ht");
