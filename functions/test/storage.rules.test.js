@@ -25,7 +25,14 @@ function otherStorage() {
 }
 
 function supportStorage() {
-  return testEnv.authenticatedContext("support-agent", { support: true }).storage();
+  return testEnv.authenticatedContext("support-agent", {
+    support: true,
+    firebase: {sign_in_second_factor: "phone"},
+  }).storage();
+}
+
+function supportWithoutMfaStorage() {
+  return testEnv.authenticatedContext("support-no-mfa", {support: true}).storage();
 }
 
 function attachment(storage, fileName) {
@@ -123,6 +130,7 @@ test("evidencias de soporte validan propietario, tipo y acceso del personal", as
     uploadBytes(ownerRef, new Uint8Array([1, 2, 3]), { contentType: "image/png" }),
   );
   await assertSucceeds(getBytes(ref(supportStorage(), path)));
+  await assertFails(getBytes(ref(supportWithoutMfaStorage(), path)));
   await assertFails(
     uploadBytes(ref(otherStorage(), path), new Uint8Array([1]), {
       contentType: "image/png",

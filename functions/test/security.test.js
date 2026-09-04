@@ -8,6 +8,11 @@ const {
   shouldCountProductView,
 } = require("../security");
 const {detectedImageType, isAllowedImage} = require("../image_security");
+const {
+  hasMfaClaim,
+  hasRecentAuthentication,
+  nextAdministrativeClaims,
+} = require("../admin_security");
 
 function snapshot(data = {}) {
   return {data: () => data};
@@ -77,4 +82,29 @@ test("rechaza archivos disfrazados y tipos declarados incorrectamente", () => {
   assert.equal(isAllowedImage(jpeg, "image/png"), false);
   assert.equal(isAllowedImage(jpeg, "image/jpeg"), true);
   assert.equal(isAllowedImage(jpeg, "image/svg+xml"), false);
+});
+
+test("exige una segunda fase real para operaciones administrativas", () => {
+  assert.equal(hasMfaClaim({}), false);
+  assert.equal(hasMfaClaim({firebase: {sign_in_second_factor: ""}}), false);
+  assert.equal(hasMfaClaim({firebase: {sign_in_second_factor: "phone"}}), true);
+});
+
+test("exige autenticacion administrativa reciente", () => {
+  assert.equal(hasRecentAuthentication({auth_time: 500}, 1000), true);
+  assert.equal(hasRecentAuthentication({auth_time: 99}, 1000), false);
+  assert.equal(hasRecentAuthentication({auth_time: 1001}, 1000), false);
+  assert.equal(hasRecentAuthentication({}, 1000), false);
+});
+
+test("los roles administrativos son exclusivos y preservan otros claims", () => {
+  assert.deepEqual(
+    nextAdministrativeClaims({support: true, plan: "pro"}, "moderator"),
+    {plan: "pro", moderator: true},
+  );
+  assert.deepEqual(
+    nextAdministrativeClaims({admin: true, plan: "pro"}, "none"),
+    {plan: "pro"},
+  );
+  assert.throws(() => nextAdministrativeClaims({}, "owner"));
 });

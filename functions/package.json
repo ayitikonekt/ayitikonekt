@@ -8,6 +8,7 @@
     "test:rules": "firebase emulators:exec --config ../firebase.json --only firestore --project demo-ayitikonekt-security \"node --test test/firestore.rules.test.js\"",
     "test:storage-rules": "firebase emulators:exec --config ../firebase.json --only firestore,storage --project demo-ayitikonekt-security \"node --test test/storage.rules.test.js\"",
     "test:security": "node --test test/security.test.js",
+    "admin:role": "node scripts/manage_administrative_role.js",
     "deploy": "firebase deploy --only functions"
   },
   "dependencies": {

@@ -6,14 +6,22 @@ service firebase.storage {
       return request.auth != null && request.auth.uid == uid;
     }
 
-    function admin() {
+    function mfa() {
       return request.auth != null
+        && 'firebase' in request.auth.token
+        && 'sign_in_second_factor' in request.auth.token.firebase
+        && request.auth.token.firebase.sign_in_second_factor is string
+        && request.auth.token.firebase.sign_in_second_factor.size() > 0;
+    }
+
+    function admin() {
+      return mfa()
         && 'admin' in request.auth.token
         && request.auth.token.admin == true;
     }
 
     function support() {
-      return request.auth != null
+      return mfa()
         && 'support' in request.auth.token
         && request.auth.token.support == true;
     }

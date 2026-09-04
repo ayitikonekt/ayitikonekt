@@ -3,6 +3,7 @@ const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentDeleted, onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {onObjectFinalized} = require("firebase-functions/v2/storage");
 const {initializeApp} = require("firebase-admin/app");
+const {getAuth} = require("firebase-admin/auth");
 const {getFirestore, FieldValue, Timestamp} = require("firebase-admin/firestore");
 const {getStorage} = require("firebase-admin/storage");
 const {
@@ -13,6 +14,12 @@ const {
   shouldCountProductView,
 } = require("./security");
 const {isAllowedImage} = require("./image_security");
+const {
+  ADMINISTRATIVE_ROLES,
+  hasMfaClaim,
+  hasRecentAuthentication,
+  nextAdministrativeClaims,
+} = require("./admin_security");
 
 initializeApp();
 setGlobalOptions({maxInstances: 20});
@@ -71,12 +78,23 @@ function hasRole(request, role) {
   return request.auth?.token?.[role] === true;
 }
 
-function requireSupportStaff(request) {
+function hasSecondFactor(request) {
+  return hasMfaClaim(request.auth?.token);
+}
+
+function requireRecentAdministrativeSession(request, allowedRoles) {
   const uid = authenticatedUid(request);
-  if (!hasRole(request, "support") && !hasRole(request, "admin")) {
-    throw new HttpsError("permission-denied", "Support access required.");
+  if (!allowedRoles.some((role) => hasRole(request, role)) || !hasSecondFactor(request)) {
+    throw new HttpsError("permission-denied", "Privileged access with MFA required.");
+  }
+  if (!hasRecentAuthentication(request.auth?.token, Math.floor(Date.now() / 1000))) {
+    throw new HttpsError("unauthenticated", "Recent authentication required.");
   }
   return uid;
+}
+
+function requireSupportStaff(request) {
+  return requireRecentAdministrativeSession(request, ["support", "admin"]);
 }
 
 async function verifiedSupportAttachments(uid, ticketId, rawPaths) {
@@ -708,10 +726,7 @@ exports.reportReview = onCall(monitoredCallable, async (request) => {
 });
 
 exports.moderateReview = onCall(async (request) => {
-  const uid = authenticatedUid(request);
-  if (request.auth?.token?.admin !== true && request.auth?.token?.moderator !== true) {
-    throw new HttpsError("permission-denied", "Moderator access required.");
-  }
+  const uid = requireRecentAdministrativeSession(request, ["moderator", "admin"]);
   const reviewId = requiredString(request.data?.reviewId, "reviewId", 330);
   const action = requiredString(request.data?.action, "action", 20);
   if (!["hide", "restore"].includes(action)) {
@@ -770,10 +785,7 @@ exports.moderateReview = onCall(async (request) => {
 
 // Operación administrativa de una sola vez para conservar reseñas anteriores.
 exports.migrateLegacyReviews = onCall(async (request) => {
-  authenticatedUid(request);
-  if (request.auth?.token?.admin !== true) {
-    throw new HttpsError("permission-denied", "Administrator access required.");
-  }
+  const administratorId = requireRecentAdministrativeSession(request, ["admin"]);
   const snapshot = await db.collection("reviews").limit(400).get();
   const batch = db.batch();
   let migrated = 0;
@@ -789,7 +801,74 @@ exports.migrateLegacyReviews = onCall(async (request) => {
     }
   }
   if (migrated > 0) await batch.commit();
+  await db.collection("administrativeAudit").add({
+    type: "legacy_review_migration",
+    actorId: administratorId,
+    migrated,
+    createdAt: FieldValue.serverTimestamp(),
+  });
   return {migrated, remainingPossible: snapshot.size === 400};
+});
+
+// Los roles administrativos viven exclusivamente en Custom Claims. Esta
+// operacion exige un administrador con MFA y autenticacion reciente, conserva
+// claims ajenos a los roles y deja una auditoria inmutable para el cliente.
+exports.setAdministrativeRole = onCall(async (request) => {
+  const administratorId = requireRecentAdministrativeSession(request, ["admin"]);
+  const targetUid = requiredString(request.data?.targetUid, "targetUid", 128);
+  const role = requiredString(request.data?.role, "role", 20);
+  const reason = requiredString(request.data?.reason, "reason", 500);
+  if (!ADMINISTRATIVE_ROLES.has(role) || reason.length < 10) {
+    throw new HttpsError("invalid-argument", "Invalid administrative role change.");
+  }
+  if (targetUid === administratorId) {
+    throw new HttpsError("failed-precondition", "Administrators cannot change their own role.");
+  }
+
+  const auth = getAuth();
+  const target = await auth.getUser(targetUid).catch((error) => {
+    if (error?.code === "auth/user-not-found") {
+      throw new HttpsError("not-found", "Target user not found.");
+    }
+    throw new HttpsError("internal", "Unable to read target user.");
+  });
+  if (role !== "none" && target.email && !target.emailVerified) {
+    throw new HttpsError("failed-precondition", "Target email must be verified.");
+  }
+
+  const previousClaims = target.customClaims || {};
+  const previousRoles = ["support", "moderator", "admin"]
+    .filter((candidate) => previousClaims[candidate] === true);
+  const nextClaims = nextAdministrativeClaims(previousClaims, role);
+  const auditRef = db.collection("administrativeAudit").doc();
+  await auditRef.set({
+    type: "role_change",
+    actorId: administratorId,
+    targetId: targetUid,
+    previousRoles,
+    newRole: role,
+    reason,
+    status: "pending",
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
+  try {
+    await auth.setCustomUserClaims(targetUid, nextClaims);
+    await auth.revokeRefreshTokens(targetUid);
+    await auditRef.update({
+      status: "completed",
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    await auditRef.update({
+      status: "failed",
+      errorCode: String(error?.code || "unknown").slice(0, 100),
+      updatedAt: FieldValue.serverTimestamp(),
+    }).catch(() => undefined);
+    throw new HttpsError("internal", "Unable to update administrative role.");
+  }
+  return {updated: true, role, refreshRequired: true};
 });
 
 exports.createSupportTicket = onCall(monitoredCallable, async (request) => {

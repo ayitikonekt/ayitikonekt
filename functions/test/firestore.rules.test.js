@@ -21,10 +21,33 @@ const projectId = "demo-ayitikonekt-security";
 let env;
 
 const user = (uid) => env.authenticatedContext(uid).firestore();
-const admin = () => env.authenticatedContext("admin", {admin: true}).firestore();
-const moderator = () => env.authenticatedContext("moderator", {moderator: true}).firestore();
-const support = () => env.authenticatedContext("support", {support: true}).firestore();
+const mfa = {firebase: {sign_in_second_factor: "phone"}};
+const admin = () => env.authenticatedContext("admin", {admin: true, ...mfa}).firestore();
+const moderator = () => env.authenticatedContext(
+  "moderator", {moderator: true, ...mfa},
+).firestore();
+const support = () => env.authenticatedContext("support", {support: true, ...mfa}).firestore();
+const adminWithoutMfa = () => env.authenticatedContext("admin-no-mfa", {admin: true}).firestore();
 const anonymous = () => env.unauthenticatedContext().firestore();
+
+function validUserProfile(uid, overrides = {}) {
+  return {
+    uid,
+    email: `${uid}@example.com`,
+    name: "Usuario",
+    lastName: "Seguro",
+    phone: "",
+    country: "Chile",
+    city: "Santiago",
+    address: "",
+    language: "es",
+    photo: "",
+    verified: false,
+    reputation: 5,
+    createdAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
 
 function validProduct(id, sellerId, overrides = {}) {
   return {
@@ -154,6 +177,13 @@ async function seed() {
       status: "reviewing",
       createdAt: serverTimestamp(),
     });
+    await setDoc(doc(db, "administrativeAudit/audit-1"), {
+      type: "role_change",
+      actorId: "admin",
+      targetId: "support",
+      newRole: "support",
+      status: "completed",
+    });
     await setDoc(doc(db, "conversations/alice-bob"), {
       participantIds: ["alice", "bob"],
     });
@@ -224,6 +254,17 @@ test("Alice puede editar campos permitidos de su perfil", async () => {
   await assertSucceeds(updateDoc(doc(user("alice"), "users/alice"), {city: "Santiago"}));
 });
 
+test("un perfil nuevo acepta solo campos publicos definidos", async () => {
+  await assertSucceeds(setDoc(
+    doc(user("new-user"), "users/new-user"),
+    validUserProfile("new-user"),
+  ));
+  await assertFails(setDoc(
+    doc(user("fake-admin"), "users/fake-admin"),
+    validUserProfile("fake-admin", {admin: true}),
+  ));
+});
+
 test("Alice no puede editar el perfil de Bob", async () => {
   await assertFails(updateDoc(doc(user("alice"), "users/bob"), {name: "Manipulado"}));
 });
@@ -232,6 +273,7 @@ test("el perfil privado de Bob no puede ser leído por Alice", async () => {
   await assertFails(getDoc(doc(user("alice"), "users/bob")));
   await assertSucceeds(getDoc(doc(user("bob"), "users/bob")));
   await assertSucceeds(getDoc(doc(admin(), "users/bob")));
+  await assertFails(getDoc(doc(adminWithoutMfa(), "users/bob")));
 });
 
 test("el perfil público es visible pero nadie puede falsificarlo directamente", async () => {
@@ -489,4 +531,14 @@ test("la auditoría de moderación no puede ser falsificada", async () => {
 test("las rutas no declaradas permanecen cerradas", async () => {
   await assertFails(setDoc(doc(user("alice"), "administration/config"), {owner: true}));
   await assertFails(getDoc(doc(user("alice"), "administration/config")));
+});
+
+test("la auditoria administrativa exige administrador con MFA y es inmutable", async () => {
+  await assertSucceeds(getDoc(doc(admin(), "administrativeAudit/audit-1")));
+  await assertFails(getDoc(doc(adminWithoutMfa(), "administrativeAudit/audit-1")));
+  await assertFails(getDoc(doc(moderator(), "administrativeAudit/audit-1")));
+  await assertFails(getDoc(doc(support(), "administrativeAudit/audit-1")));
+  await assertFails(setDoc(doc(admin(), "administrativeAudit/fake"), {
+    type: "role_change",
+  }));
 });

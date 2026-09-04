@@ -10,18 +10,26 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    function mfa() {
+      return signedIn()
+        && 'firebase' in request.auth.token
+        && 'sign_in_second_factor' in request.auth.token.firebase
+        && request.auth.token.firebase.sign_in_second_factor is string
+        && request.auth.token.firebase.sign_in_second_factor.size() > 0;
+    }
+
     function admin() {
-      return signedIn() && 'admin' in request.auth.token
+      return mfa() && 'admin' in request.auth.token
         && request.auth.token.admin == true;
     }
 
     function moderator() {
-      return signedIn() && 'moderator' in request.auth.token
+      return mfa() && 'moderator' in request.auth.token
         && request.auth.token.moderator == true;
     }
 
     function support() {
-      return signedIn() && 'support' in request.auth.token
+      return mfa() && 'support' in request.auth.token
         && request.auth.token.support == true;
     }
 
@@ -45,6 +53,30 @@ service cloud.firestore {
     function validStoredDate(value) {
       return value is timestamp
         || (value is string && value.size() >= 20 && value.size() <= 40);
+    }
+
+    function validNewUserProfile(data, uid) {
+      return data.keys().hasAll([
+          'uid', 'email', 'name', 'lastName', 'phone', 'country', 'city',
+          'address', 'language', 'photo', 'verified', 'reputation', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'email', 'name', 'lastName', 'phone', 'country', 'city',
+          'address', 'language', 'photo', 'verified', 'reputation', 'createdAt'
+        ])
+        && data.uid is string && data.uid == uid
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 100
+        && data.lastName is string && data.lastName.size() >= 1 && data.lastName.size() <= 100
+        && data.phone is string && data.phone.size() <= 40
+        && data.country is string && data.country.size() >= 2 && data.country.size() <= 80
+        && data.city is string && data.city.size() <= 120
+        && data.address is string && data.address.size() <= 300
+        && data.language is string && data.language.size() >= 2 && data.language.size() <= 20
+        && data.photo is string && data.photo.size() <= 2048
+        && data.verified is bool && data.verified == false
+        && data.reputation is number && data.reputation == 5
+        && validStoredDate(data.createdAt);
     }
 
     function validProduct(data, productId) {
@@ -104,8 +136,7 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if owner(uid) || admin();
       allow create: if owner(uid)
-        && request.resource.data.uid == uid
-        && request.resource.data.reputation == 5;
+        && validNewUserProfile(request.resource.data, uid);
       allow update: if owner(uid)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'name', 'lastName', 'phone', 'country', 'city', 'address',
@@ -218,6 +249,11 @@ service cloud.firestore {
 
     match /supportAudit/{auditId} {
       allow read: if support() || admin();
+      allow write: if false;
+    }
+
+    match /administrativeAudit/{auditId} {
+      allow read: if admin();
       allow write: if false;
     }
 
