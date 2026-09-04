@@ -21,6 +21,12 @@ const translations = {
     opportunitiesTitle: "Opòtinite",
     opportunitiesDescription: "Konekte ak nouvo opòtinite nan kominote a.",
     opportunitiesAction: "Gade opòtinite yo",
+    downloadTitle: "Dekouvri plis nan aplikasyon an",
+    downloadDescription: "Telechaje AyitiKonekt oswa kontinye konsilte katalòg la sou sit la.",
+    continueWeb: "Kontinye sou sit la",
+    googlePlaySoon: "Google Play — Byento",
+    appStoreSoon: "App Store — Byento",
+    closeDialog: "Fèmen",
     contactTitle: "Kontak",
     emailLabel: "Imèl:",
     footer: "© 2026 AyitiKonekt. Tout dwa rezève.",
@@ -47,6 +53,12 @@ const translations = {
     opportunitiesTitle: "Oportunidades",
     opportunitiesDescription: "Conecta con nuevas oportunidades dentro de la comunidad.",
     opportunitiesAction: "Ver oportunidades",
+    downloadTitle: "Descubre más en la aplicación",
+    downloadDescription: "Descarga AyitiKonekt o continúa consultando el catálogo en el sitio web.",
+    continueWeb: "Continuar en la web",
+    googlePlaySoon: "Google Play — Próximamente",
+    appStoreSoon: "App Store — Próximamente",
+    closeDialog: "Cerrar",
     contactTitle: "Contacto",
     emailLabel: "Correo:",
     footer: "© 2026 AyitiKonekt. Todos los derechos reservados.",
@@ -73,6 +85,12 @@ const translations = {
     opportunitiesTitle: "Opportunities",
     opportunitiesDescription: "Connect with new opportunities within the community.",
     opportunitiesAction: "View opportunities",
+    downloadTitle: "Discover more in the app",
+    downloadDescription: "Download AyitiKonekt or continue browsing the catalog on the website.",
+    continueWeb: "Continue on the website",
+    googlePlaySoon: "Google Play — Coming soon",
+    appStoreSoon: "App Store — Coming soon",
+    closeDialog: "Close",
     contactTitle: "Contact",
     emailLabel: "Email:",
     footer: "© 2026 AyitiKonekt. All rights reserved.",
@@ -99,6 +117,12 @@ const translations = {
     opportunitiesTitle: "Opportunités",
     opportunitiesDescription: "Découvrez de nouvelles opportunités au sein de la communauté.",
     opportunitiesAction: "Voir les opportunités",
+    downloadTitle: "Découvrez-en plus dans l’application",
+    downloadDescription: "Téléchargez AyitiKonekt ou continuez à consulter le catalogue sur le site.",
+    continueWeb: "Continuer sur le site",
+    googlePlaySoon: "Google Play — Bientôt",
+    appStoreSoon: "App Store — Bientôt",
+    closeDialog: "Fermer",
     contactTitle: "Contact",
     emailLabel: "E-mail :",
     footer: "© 2026 AyitiKonekt. Tous droits réservés.",
@@ -125,6 +149,12 @@ const translations = {
     opportunitiesTitle: "Oportunidades",
     opportunitiesDescription: "Conecte-se a novas oportunidades dentro da comunidade.",
     opportunitiesAction: "Ver oportunidades",
+    downloadTitle: "Descubra mais no aplicativo",
+    downloadDescription: "Baixe o AyitiKonekt ou continue consultando o catálogo no site.",
+    continueWeb: "Continuar no site",
+    googlePlaySoon: "Google Play — Em breve",
+    appStoreSoon: "App Store — Em breve",
+    closeDialog: "Fechar",
     contactTitle: "Contato",
     emailLabel: "E-mail:",
     footer: "© 2026 AyitiKonekt. Todos os direitos reservados.",
@@ -176,6 +206,10 @@ function applyLanguage(language) {
     const value = copy[element.dataset.i18n];
     if (value) element.textContent = value;
   });
+  document.querySelectorAll("[data-i18n-aria-label]").forEach((element) => {
+    const value = copy[element.dataset.i18nAriaLabel];
+    if (value) element.setAttribute("aria-label", value);
+  });
   document.querySelectorAll("[data-catalog]").forEach((catalog) => {
     const items = catalogItems[catalog.dataset.catalog]?.[language] ?? [];
     catalog.replaceChildren(...items.map((item) => {
@@ -214,3 +248,28 @@ document.addEventListener("keydown", (event) => {
 
 const savedLanguage = localStorage.getItem("ayitikonekt-language");
 applyLanguage(translations[savedLanguage] ? savedLanguage : "ht");
+
+const downloadDialog = document.querySelector("#download-dialog");
+const continueWebButton = document.querySelector("#continue-web");
+const dialogCloseButton = document.querySelector(".dialog-close");
+let pendingCatalogUrl = "";
+
+document.querySelectorAll(".catalog-card").forEach((card) => {
+  card.addEventListener("click", (event) => {
+    if (!downloadDialog || sessionStorage.getItem("download-invitation-seen")) return;
+    event.preventDefault();
+    pendingCatalogUrl = card.href;
+    sessionStorage.setItem("download-invitation-seen", "true");
+    downloadDialog.showModal();
+  });
+});
+
+continueWebButton?.addEventListener("click", () => {
+  if (pendingCatalogUrl) window.location.assign(pendingCatalogUrl);
+});
+
+dialogCloseButton?.addEventListener("click", () => downloadDialog.close());
+
+downloadDialog?.addEventListener("click", (event) => {
+  if (event.target === downloadDialog) downloadDialog.close();
+});
