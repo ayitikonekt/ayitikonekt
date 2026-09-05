@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../data/user_model.dart';
+import 'multi_factor_service.dart';
 import 'user_service.dart';
 
 class AuthService {
@@ -105,6 +106,24 @@ class AuthService {
       password: password,
     );
   }
+
+  Future<UserCredential> completeMultiFactorSignIn({
+    required MultiFactorResolver resolver,
+    required String verificationId,
+    required String smsCode,
+  }) => MultiFactorService(auth: _auth).finishSignInChallenge(
+    resolver: resolver,
+    verificationId: verificationId,
+    smsCode: smsCode,
+  );
+
+  Future<UserCredential> completeMultiFactorSignInWithCredential({
+    required MultiFactorResolver resolver,
+    required PhoneAuthCredential credential,
+  }) => MultiFactorService(auth: _auth).finishSignInChallengeWithCredential(
+    resolver: resolver,
+    credential: credential,
+  );
 
   Future<void> logout() async {
     await _auth.signOut();

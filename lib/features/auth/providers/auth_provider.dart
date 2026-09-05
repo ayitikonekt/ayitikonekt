@@ -32,6 +32,32 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> completeMultiFactorSignIn({
+    required MultiFactorResolver resolver,
+    required String verificationId,
+    required String smsCode,
+  }) async {
+    final credential = await _authService.completeMultiFactorSignIn(
+      resolver: resolver,
+      verificationId: verificationId,
+      smsCode: smsCode,
+    );
+    _user = credential.user;
+    notifyListeners();
+  }
+
+  Future<void> completeMultiFactorSignInWithCredential({
+    required MultiFactorResolver resolver,
+    required PhoneAuthCredential credential,
+  }) async {
+    final result = await _authService.completeMultiFactorSignInWithCredential(
+      resolver: resolver,
+      credential: credential,
+    );
+    _user = result.user;
+    notifyListeners();
+  }
+
   Future<void> register({
     required String email,
     required String password,

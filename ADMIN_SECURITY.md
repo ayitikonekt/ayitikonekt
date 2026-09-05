@@ -64,3 +64,14 @@ Antes de activar estas reglas en producción:
 4. Ejecutar todas las pruebas locales.
 5. Desplegar Functions y reglas en una misma ventana controlada.
 6. Confirmar acceso con MFA y confirmar que el acceso sin MFA sea rechazado.
+
+## Pendiente posterior al lanzamiento
+
+Después de publicar la aplicación para usuarios reales, crear un panel web
+administrativo seguro para operar desde computadoras. Hasta entonces, las
+funciones de soporte, moderación y administración se utilizarán únicamente
+desde iPhone o Android con MFA.
+
+El panel web deberá reutilizar los Custom Claims actuales, exigir MFA y
+autenticación reciente, respetar la separación de permisos entre `support`,
+`moderator` y `admin`, y conservar la auditoría de todas las intervenciones.

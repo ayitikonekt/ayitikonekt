@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -9,6 +10,7 @@ import '../providers/auth_provider.dart';
 import '../services/user_service.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
+import 'multi_factor_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final String country;
@@ -101,6 +103,19 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       await _applySelectedPreferences();
       _goToHome();
+    } on FirebaseAuthMultiFactorException catch (error) {
+      if (!mounted) return;
+      final completed = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MultiFactorChallengeScreen(exception: error),
+        ),
+      );
+      if (!mounted) return;
+      if (completed == true) {
+        await _applySelectedPreferences();
+        _goToHome();
+      }
     } catch (error) {
       _showError(error.toString());
     } finally {

@@ -4,6 +4,8 @@ import '../../../core/localization/app_locale_provider.dart';
 import '../../../shared/widgets/app_back_button.dart';
 import '../../auth/data/user_model.dart';
 import '../../auth/presentation/edit_profile_screen.dart';
+import '../../auth/presentation/multi_factor_screen.dart';
+import '../../auth/services/multi_factor_service.dart';
 import '../../auth/services/user_service.dart';
 import '../../home/presentation/location_settings_panel.dart';
 import '../../notifications/presentation/notifications_screen.dart';
@@ -19,12 +21,30 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late UserModel _user;
+  String? _administrativeRole;
 
   @override
   void initState() {
     super.initState();
     _user = widget.user;
+    _loadAdministrativeRole();
   }
+
+  Future<void> _loadAdministrativeRole() async {
+    try {
+      final role = await MultiFactorService().administrativeRole(
+        forceRefresh: true,
+      );
+      if (mounted) setState(() => _administrativeRole = role);
+    } catch (_) {
+      // La configuración sigue disponible aunque no se pueda renovar el token.
+    }
+  }
+
+  Future<void> _openMultiFactorSecurity() => Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => const MultiFactorEnrollmentScreen()),
+  );
 
   Future<void> _refreshUser() async {
     final updated = await UserService().getUser(_user.uid);
@@ -202,6 +222,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onTap: () =>
                           _showInformation('security', 'securityInformation'),
                     ),
+                    if (_administrativeRole != null)
+                      _SettingsTile(
+                        icon: Icons.phonelink_lock_outlined,
+                        title: context.tr('mfaAdminSecurity'),
+                        subtitle: MultiFactorService.isSupportedMobilePlatform
+                            ? context.tr('mfaConfigureSubtitle')
+                            : context.tr('mfaMobileOnlyShort'),
+                        onTap: _openMultiFactorSecurity,
+                      ),
                   ],
                 ),
                 const SizedBox(height: 22),
