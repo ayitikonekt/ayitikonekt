@@ -67,11 +67,11 @@ class AllProductsScreen extends StatelessWidget {
                 child: GridView.builder(
                   itemCount: products.length,
 
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 310,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    childAspectRatio: 0.63,
+                    childAspectRatio: constraints.maxWidth < 600 ? 0.50 : 0.63,
                   ),
 
                   itemBuilder: (context, index) {

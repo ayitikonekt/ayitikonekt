@@ -74,22 +74,32 @@ class _LoginScreenState extends State<LoginScreen> {
   };
 
   Future<void> _applySelectedPreferences() async {
+    if (mounted) {
+      context.read<AppLocaleProvider>().selectLanguageName(widget.language);
+    }
+
     final authUser = context.read<AuthProvider>().user;
     if (authUser == null) return;
-    final userService = UserService();
-    final profile = await userService.getUser(authUser.uid);
-    if (profile == null) return;
 
-    await userService.updateUser(
-      profile.copyWith(
-        country: widget.country,
-        language: widget.language,
-        city: _defaultCityFor(widget.country),
-        address: '',
-      ),
-    );
-    if (!mounted) return;
-    context.read<AppLocaleProvider>().selectLanguageName(widget.language);
+    try {
+      final userService = UserService();
+      final profile = await userService.getUser(authUser.uid);
+      if (profile == null) return;
+
+      await userService.updateUser(
+        profile.copyWith(
+          country: widget.country,
+          language: widget.language,
+          city: _defaultCityFor(widget.country),
+          address: '',
+        ),
+      );
+    } catch (error, stackTrace) {
+      // La sesión ya está autenticada. Un perfil antiguo o una regla más
+      // restrictiva no debe bloquear el acceso ni el registro de MFA.
+      debugPrint('No se pudieron sincronizar las preferencias: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
   }
 
   Future<void> _loginWithEmail() async {
